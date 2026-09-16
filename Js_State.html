@@ -1,0 +1,16 @@
+<script>
+const TOKEN_KEY='neramit_device_token_v1';
+const PENDING_KEY='neramit_pending_job_v2';
+const LEGACY_PENDING_KEY='neramit_pending_job_v1';
+const DRAFT_KEY='neramit_active_draft_v2';
+const ADMIN_KEY='neramit_admin_session_v1';
+window.App={
+  ready:false,busy:false,token:'',config:null,currentDraft:null,references:[],result:null,activeVariant:0,historyPage:1,
+  output:{platform:'',language:'TH',variant_count:2},adminToken:sessionStorage.getItem(ADMIN_KEY)||'',adminTab:'overview'
+};
+function saveActiveDraft(){if(App.currentDraft)localStorage.setItem(DRAFT_KEY,JSON.stringify({draftId:App.currentDraft.draftId,sourceMode:App.currentDraft.sourceMode}));else localStorage.removeItem(DRAFT_KEY)}
+function loadActiveDraftHint(){try{return JSON.parse(localStorage.getItem(DRAFT_KEY)||'null')}catch(_){return null}}
+function clearActiveDraft(){App.currentDraft=null;App.references=[];localStorage.removeItem(DRAFT_KEY)}
+function setPendingJob(value){if(value)localStorage.setItem(PENDING_KEY,JSON.stringify(value));else{localStorage.removeItem(PENDING_KEY);localStorage.removeItem(LEGACY_PENDING_KEY)}}
+function getPendingJob(){try{const modern=JSON.parse(localStorage.getItem(PENDING_KEY)||'null');if(modern)return modern;const legacy=JSON.parse(localStorage.getItem(LEGACY_PENDING_KEY)||'null');return legacy?{legacy:true,...legacy}:null}catch(_){return null}}
+</script>

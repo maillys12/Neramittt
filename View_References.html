@@ -1,0 +1,5 @@
+<main class="app-main view" id="view-references" data-view="references">
+  <div class="section-head"><div><span class="eyebrow">🖼 ภาพอ้างอิง</span><h1 class="page-title">ให้ Neramit ดูตัวอย่างที่คุณชอบ</h1><p class="page-subtitle">เลือกได้ว่าต้องการอ้างอิงแค่สี การจัดวาง วัตถุ หรือฉากหลัง</p></div><button class="btn btn-outline" id="refBackBtn">← กลับ</button></div>
+  <section class="card panel"><form id="uploadForm" class="upload-zone"><input type="hidden" name="token" id="uploadToken"><input type="hidden" name="draftId" id="uploadDraftId"><div style="font-size:34px">⬆</div><h3>อัปโหลดภาพอ้างอิง</h3><p class="muted">JPEG, PNG หรือ WebP · สูงสุด <span id="refLimitText">4</span> ภาพ</p><input id="referenceFile" name="image" type="file" accept="image/jpeg,image/png,image/webp" hidden><button type="button" class="btn btn-soft" id="pickReferenceBtn">เลือกภาพ</button></form><div id="referenceGrid" class="reference-grid"></div></section>
+  <div class="sticky-actions"><button class="btn btn-outline" id="skipReferenceBtn">ข้ามภาพอ้างอิง</button><button class="btn btn-primary" id="referenceNextBtn">ตรวจสรุปข้อมูล →</button></div>
+</main>

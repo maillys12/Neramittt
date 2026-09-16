@@ -1,0 +1,43 @@
+<div class="decor a" aria-hidden="true"></div><div class="decor b" aria-hidden="true"></div><div class="decor c" aria-hidden="true"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="brandGrad" x1="0" x2="1"><stop offset="0" stop-color="#ff7b46"/><stop offset=".55" stop-color="#f94f9d"/><stop offset="1" stop-color="#8b67ed"/></linearGradient>
+    <symbol id="neramit-mark" viewBox="0 0 64 64">
+      <path d="M12 48V17c0-4 5-6 8-3l13 17V16c0-5 6-7 9-3l10 13v22" fill="none" stroke="url(#brandGrad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="mascot-pencil" viewBox="0 0 220 220">
+      <path d="M73 157c-14 12-34 12-48 2 10-8 17-20 18-35 11 7 21 18 30 33Z" fill="#62c4f7"/>
+      <path d="M145 157c14 12 34 12 48 2-10-8-17-20-18-35-11 7-21 18-30 33Z" fill="#62c4f7"/>
+      <g transform="rotate(4 110 105)">
+        <path d="M92 28h36l11 24-23 105-17 13-11-19 22-99Z" fill="#ffd452" stroke="#17205d" stroke-width="4" stroke-linejoin="round"/>
+        <path d="M92 28h36l11 24H87Z" fill="#f36cae" stroke="#17205d" stroke-width="4"/>
+        <path d="M100 157l16 13-13 17-12-16Z" fill="#f5d9b8" stroke="#17205d" stroke-width="4"/>
+        <path d="M97 178l6 9-10 6Z" fill="#17205d"/>
+        <circle cx="101" cy="86" r="5" fill="#17205d"/><circle cx="122" cy="88" r="5" fill="#17205d"/>
+        <path d="M103 104c7 6 14 6 20 0" fill="none" stroke="#17205d" stroke-width="4" stroke-linecap="round"/>
+      </g>
+      <path d="M87 115c-17 2-28 9-35 20" fill="none" stroke="#17205d" stroke-width="5" stroke-linecap="round"/>
+      <path d="M139 116c16 4 26 12 33 23" fill="none" stroke="#17205d" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="49" cy="137" r="5" fill="#17205d"/><circle cx="175" cy="142" r="5" fill="#17205d"/>
+      <path d="M94 173c-2 14-8 23-18 30M117 176c8 11 11 20 10 29" fill="none" stroke="#17205d" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="75" cy="205" r="5" fill="#17205d"/><circle cx="127" cy="206" r="5" fill="#17205d"/>
+      <path d="M38 47l3 9 9 3-9 3-3 9-3-9-9-3 9-3Z" fill="#ffbf35"/><path d="M177 64l2 7 7 2-7 2-2 7-2-7-7-2 7-2Z" fill="#f755a4"/>
+    </symbol>
+  </defs>
+</svg>
+<header class="topbar">
+  <div class="topbar-inner">
+    <button class="brand" data-route="home" aria-label="Neramit หน้าแรก">
+      <svg class="brand-mark" viewBox="0 0 64 64"><use href="#neramit-mark"></use></svg>
+      <span class="brand-copy"><strong>Neramit</strong><small>เนรมิต</small></span>
+    </button>
+    <nav id="mainNav" class="nav" aria-label="เมนูหลัก">
+      <button class="nav-btn" data-route="home">สร้างพรอมต์</button>
+      <button class="nav-btn" data-route="history">ประวัติของฉัน</button>
+      <button class="nav-btn" id="helpBtn">วิธีใช้งาน</button>
+    </nav>
+    <div class="quota-pill" id="quotaPill"><span>⚡</span><span class="label">โควตาวันนี้</span><strong id="quotaText">—</strong></div>
+    <button id="mobileMenuBtn" class="mobile-menu" aria-label="เปิดเมนู">☰</button>
+  </div>
+</header>
+<div class="toast-wrap" id="toastWrap" aria-live="polite"></div>

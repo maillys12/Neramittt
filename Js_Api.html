@@ -1,0 +1,4 @@
+<script>
+function api(name,...args){return new Promise((resolve,reject)=>{let runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(err=>reject(new Error(err&&err.message?err.message:String(err))));runner[name](...args)})}
+function uploadReferenceApi(form){return new Promise((resolve,reject)=>{google.script.run.withSuccessHandler(resolve).withFailureHandler(err=>reject(new Error(err&&err.message?err.message:String(err)))).uploadReferenceImage(form)})}
+</script>

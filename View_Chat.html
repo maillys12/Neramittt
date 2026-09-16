@@ -1,0 +1,11 @@
+<main class="app-main view" id="view-chat" data-view="chat">
+  <div class="section-head"><div><span class="eyebrow">💬 คุยกับ Neramit</span><h1 class="page-title">เล่าไอเดียมาได้เลย</h1><p class="page-subtitle">Neramit จะช่วยเก็บรายละเอียดให้ครบโดยไม่ถามซ้ำสิ่งที่คุณบอกแล้ว</p></div><button class="btn btn-outline" data-route="home">← กลับหน้าแรก</button></div>
+  <div class="work-layout">
+    <section class="card chat-card">
+      <div class="chat-head row-between"><div class="row"><svg class="mascot small" viewBox="0 0 220 220"><use href="#mascot-pencil"></use></svg><div><strong>Neramit</strong><div class="muted" style="font-size:12px">Creative brief assistant</div></div></div><span class="badge">AI</span></div>
+      <div id="chatMessages" class="chat-messages"></div>
+      <div><div id="quickReplies" class="quick-replies" style="padding:0 14px 8px"></div><form id="chatForm" class="chat-compose"><textarea id="chatInput" class="textarea" placeholder="เช่น อยากทำโปสเตอร์รับสมัครชมรมถ่ายภาพ โทนฟ้าเหลือง สนุก ๆ"></textarea><button class="btn btn-primary" id="chatSendBtn">ส่ง</button></form></div>
+    </section>
+    <aside class="card panel summary-panel"><div class="row-between"><h2 style="margin:0">สรุปไอเดียของคุณ</h2><span class="badge">อัปเดตสด</span></div><div id="chatSummary" class="summary-list"></div><div class="divider"></div><button class="btn btn-primary" id="chatReviewBtn" disabled>ตรวจสรุปข้อมูล →</button></aside>
+  </div>
+</main>

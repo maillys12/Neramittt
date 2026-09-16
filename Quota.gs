@@ -229,3 +229,20 @@ function finishQuota_(jobId, succeeded) {
     return { jobId: jobId, state: row[c.job_state] };
   });
 }
+
+function getDeviceQuotaStatus_(deviceHash) {
+  return withQuotaLock_(function () {
+    const settings = getSettings_();
+    const table = quotaTable_('PROMPTS');
+    const c = table.columns;
+    const today = Utilities.formatDate(new Date(), settings.TIMEZONE, 'yyyy-MM-dd');
+    let used = 0;
+    table.rows.forEach(function (row) {
+      const date = row[c.quota_date] instanceof Date
+        ? Utilities.formatDate(row[c.quota_date], settings.TIMEZONE, 'yyyy-MM-dd')
+        : String(row[c.quota_date] || '');
+      if (date === today && row[c.device_id_hash] === deviceHash && Number(row[c.quota_units]) === 1) used++;
+    });
+    return {used:used, limit:settings.DEVICE_DAILY_LIMIT, remaining:Math.max(0, settings.DEVICE_DAILY_LIMIT-used)};
+  });
+}

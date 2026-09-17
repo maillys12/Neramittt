@@ -17,7 +17,7 @@ describe('buildChatInstructions', () => {
     expect(text).toContain('exactly 2');
   });
 
-  it('requires structured English prompts in fenced code blocks and the exact Thai remark', () => {
+  it('returns only fenced English prompts with no Thai prose appended by the model', () => {
     const text = buildChatInstructions({ platform: 'gemini', language: 'en', variantCount: 3 });
     expect(text).toContain('Subject & Medium');
     expect(text).toContain('Elements & Details');
@@ -25,6 +25,13 @@ describe('buildChatInstructions', () => {
     expect(text).toContain('Composition & Layout');
     expect(text).toContain('Parameters');
     expect(text).toContain('triple backticks');
-    expect(text).toContain('กรุณานำพรอมต์นี้ไปใช้สร้างภาพ และนำภาพที่ได้ไปพิมพ์ข้อความภาษาไทยทับเองในแอปพลิเคชันอื่น');
+    expect(text).toContain('output only the fenced prompt code block');
+    expect(text).not.toContain('กรุณานำพรอมต์นี้ไปใช้สร้างภาพ');
+  });
+
+  it('frames the task as new image generation rather than editing an existing image', () => {
+    const text = buildChatInstructions({ platform: 'chatgpt', language: 'th', variantCount: 1 });
+    expect(text).toContain('create a new image from scratch');
+    expect(text).toContain('Do not phrase the prompt as editing, modifying, replacing, retouching, or changing an existing image');
   });
 });

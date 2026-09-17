@@ -6,11 +6,11 @@ export function InlineSpinner({ label = 'กำลังโหลด' }: { label
   return <span className="inlineSpinner" role="status" aria-live="polite"><span className="inlineSpinner__dot" />{label}</span>;
 }
 
-export function AiThinkingBubble() {
+export function AiThinkingBubble({ label = 'กำลังคิด' }: { label?: string }) {
   return (
-    <div className="aiThinking" role="status" aria-live="polite" aria-label="Neramit กำลังคิด">
+    <div className="aiThinking" role="status" aria-live="polite" aria-label={`Neramit ${label}`}>
       <span className="aiAvatar" aria-hidden="true"><NeramitIcon name="spark" size={20}/></span>
-      <div className="aiThinking__bubble"><span>กำลังคิด</span><span className="typingDots" aria-hidden="true"><i /><i /><i /></span></div>
+      <div className="aiThinking__bubble"><span>{label}</span><span className="typingDots" aria-hidden="true"><i /><i /><i /></span></div>
     </div>
   );
 }

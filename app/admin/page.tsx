@@ -1,2 +1,2 @@
-import AdminClient from'@/components/AdminClient';import{BrandMark}from'@/components/ui/BrandMark';
-export default function Admin(){return <main className="siteShell adminPage"><header className="adminHeader"><BrandMark compact/><span className="adminBadge">ADMIN</span><span className="ownerBadge">🔒 สำหรับเจ้าของระบบ</span></header><AdminClient/></main>}
+import AdminClient from'@/components/AdminClient';import{BrandMark}from'@/components/ui/BrandMark';import{NeramitIcon}from'@/components/ui/NeramitIcon';
+export default function Admin(){return <main className="siteShell adminPage"><header className="adminHeader"><BrandMark compact/><span className="adminBadge">ADMIN</span><span className="ownerBadge"><NeramitIcon name="lock" size={16}/> สำหรับเจ้าของระบบ</span></header><AdminClient/></main>}

@@ -11,10 +11,10 @@ Supabase project: `Neramit` (`ulczxopzyclihsvuavzc`, Singapore).
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `OPENAI_API_KEY`
 - `DEVICE_TOKEN_PEPPER`
-- `ADMIN_PASSWORD_HASH`
+- `ADMIN_PASSWORD_HASH` — SHA-256 hex digest of the admin password
 - `CRON_SECRET`
 
-Never commit secret values. The legacy browser key `neramit_device_token_v1` is intentionally preserved.
+Generate `DEVICE_TOKEN_PEPPER` and `CRON_SECRET` as long random values. Never commit secret values. The legacy browser key `neramit_device_token_v1` is intentionally preserved.
 
 ## Commands
 

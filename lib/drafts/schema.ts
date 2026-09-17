@@ -1,1 +1,1 @@
-import {z} from 'zod';export const draftInputSchema=z.object({mode:z.enum(['chat','form']),title:z.string().max(200).optional(),variantCount:z.number().int().min(1).max(3).default(1),brief:z.record(z.string(),z.unknown()).default({})});
+import{z}from'zod';export const draftInputSchema=z.object({mode:z.enum(['chat','form']),title:z.string().max(200).optional(),brief:z.record(z.string(),z.unknown()).default({})});

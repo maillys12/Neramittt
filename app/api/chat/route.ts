@@ -7,7 +7,7 @@ import{getOpenAI}from'@/lib/openai/client';
 import{normalizeCreationSettings,settingsPatch}from'@/lib/ui/creation-settings';
 import{buildChatInstructions}from'@/lib/ui/chat-instructions';
 
-const CreationSettingsSchema=z.object({platform:z.enum(['chatgpt','gemini','canva','generic']),language:z.enum(['th','en']),variantCount:z.number().int().min(1).max(3)});
+const CreationSettingsSchema=z.object({platform:z.enum(['chatgpt','gemini','canva','generic']),language:z.enum(['th','en']),variantCount:z.union([z.literal(1),z.literal(2),z.literal(3)])});
 const S=z.object({draftId:z.string().uuid(),message:z.string().min(1).max(5000),settings:CreationSettingsSchema.optional()});
 const CHAT_CONTEXT_LIMIT=12;
 

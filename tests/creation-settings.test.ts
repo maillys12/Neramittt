@@ -15,12 +15,12 @@ describe('creation settings', () => {
     expect(settingsPatch({ platform: 'canva', language: 'th', variantCount: 2 })).toEqual({ target_platform: 'canva', prompt_language: 'th', variant_count: 2 });
   });
 
-  it('maps platform and language to generation instructions', () => {
+  it('maps platform and always requires English for the final image prompt', () => {
     expect(platformInstruction('chatgpt')).toContain('ChatGPT');
     expect(platformInstruction('gemini')).toContain('Gemini');
     expect(platformInstruction('canva')).toContain('Canva');
     expect(platformInstruction('generic')).toContain('กลาง');
-    expect(languageInstruction('th')).toContain('ภาษาไทย');
-    expect(languageInstruction('en')).toContain('English');
+    expect(languageInstruction('th')).toContain('entirely in English');
+    expect(languageInstruction('en')).toContain('entirely in English');
   });
 });

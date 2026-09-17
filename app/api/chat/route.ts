@@ -7,6 +7,7 @@ import{getOpenAI}from'@/lib/openai/client';
 import{normalizeCreationSettings,settingsPatch}from'@/lib/ui/creation-settings';
 import{buildChatInstructions}from'@/lib/ui/chat-instructions';
 import{buildPromptRepairInstructions,hasFencedPromptBlocks,sanitizeModelText,validateFinalPromptResponse}from'@/lib/ui/image-prompt-policy';
+import{parseAssistantEnvelope}from'@/lib/ui/smart-replies';
 
 const CreationSettingsSchema=z.object({platform:z.enum(['chatgpt','gemini','canva','generic']),language:z.enum(['th','en']),variantCount:z.union([z.literal(1),z.literal(2),z.literal(3)])});
 const S=z.object({draftId:z.string().uuid(),message:z.string().min(1).max(5000),settings:CreationSettingsSchema.optional()});
@@ -54,6 +55,8 @@ export async function POST(req:Request){
         if(!validation.ok)throw new Error('PROMPT_FORMAT_FAILED');
       }
     }
+    const envelope=parseAssistantEnvelope(text);
+    text=envelope.message;
     const nextBrief={...briefWithSettings,conversation_summary:text};
     const[assistantWrite,draftWrite]=await Promise.all([
       db.from('chat_messages').insert({draft_id:draft.id,role:'assistant',content:text}),
@@ -61,7 +64,7 @@ export async function POST(req:Request){
     ]);
     if(assistantWrite.error)throw assistantWrite.error;
     if(draftWrite.error)throw draftWrite.error;
-    return NextResponse.json({ok:true,message:text,brief:nextBrief,settings});
+    return NextResponse.json({ok:true,message:text,replies:envelope.replies,brief:nextBrief,settings});
   }catch(e){
     return NextResponse.json({ok:false,error:e instanceof Error?e.message:'CHAT_FAILED'},{status:400});
   }

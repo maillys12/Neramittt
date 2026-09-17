@@ -6,6 +6,7 @@ import{getServerSupabase}from'@/lib/supabase/server';
 import{getOpenAI}from'@/lib/openai/client';
 import{normalizeCreationSettings,settingsPatch}from'@/lib/ui/creation-settings';
 import{buildChatInstructions}from'@/lib/ui/chat-instructions';
+import{appendExactFinalRemark,buildPromptRepairInstructions,hasFencedPromptBlocks,sanitizeModelText,validateFinalPromptResponse}from'@/lib/ui/image-prompt-policy';
 
 const CreationSettingsSchema=z.object({platform:z.enum(['chatgpt','gemini','canva','generic']),language:z.enum(['th','en']),variantCount:z.union([z.literal(1),z.literal(2),z.literal(3)])});
 const S=z.object({draftId:z.string().uuid(),message:z.string().min(1).max(5000),settings:CreationSettingsSchema.optional()});
@@ -26,17 +27,36 @@ export async function POST(req:Request){
     const{data:messages,error:messageError}=await db.from('chat_messages').select('role,content').eq('draft_id',draft.id).order('created_at',{ascending:false}).limit(CHAT_CONTEXT_LIMIT);
     if(messageError)throw messageError;
     const chronological=[...(messages??[])].reverse();
+    const maxOutputTokens=settings.variantCount===3?1500:settings.variantCount===2?1100:800;
     const ai=await getOpenAI().responses.create({
       model:'gpt-5.6-luna',
       reasoning:{effort:'low'},
       store:false,
-      max_output_tokens:settings.variantCount===3?1500:settings.variantCount===2?1100:800,
+      max_output_tokens:maxOutputTokens,
       instructions:buildChatInstructions(settings),
       input:chronological.map(m=>`${m.role}: ${m.content}`).join('\n')
     });
-    const text=ai.output_text||(settings.language==='en'?'Got it. Tell me a little more about the idea.':'รับข้อมูลแล้วครับ เล่ารายละเอียดเพิ่มได้เลย');
+    let text=sanitizeModelText(ai.output_text||'รับข้อมูลแล้วครับ เล่ารายละเอียดเพิ่มได้เลย');
+    const looksLikeFinal=hasFencedPromptBlocks(text)||text.includes('Subject & Medium:')||text.includes('Parameters:');
+    if(looksLikeFinal){
+      text=appendExactFinalRemark(text);
+      let validation=validateFinalPromptResponse(text,settings.variantCount);
+      if(!validation.ok){
+        const repaired=await getOpenAI().responses.create({
+          model:'gpt-5.6-luna',
+          reasoning:{effort:'low'},
+          store:false,
+          max_output_tokens:maxOutputTokens,
+          instructions:buildPromptRepairInstructions(settings.variantCount),
+          input:`Repair this response without changing the user's intended visual requirements:\n\n${text}`
+        });
+        text=appendExactFinalRemark(sanitizeModelText(repaired.output_text||''));
+        validation=validateFinalPromptResponse(text,settings.variantCount);
+        if(!validation.ok)throw new Error('PROMPT_FORMAT_FAILED');
+      }
+    }
     const nextBrief={...briefWithSettings,conversation_summary:text};
-    const [assistantWrite,draftWrite]=await Promise.all([
+    const[assistantWrite,draftWrite]=await Promise.all([
       db.from('chat_messages').insert({draft_id:draft.id,role:'assistant',content:text}),
       db.from('drafts').update({brief:nextBrief,updated_at:new Date().toISOString()}).eq('id',draft.id).eq('device_id',device.id)
     ]);

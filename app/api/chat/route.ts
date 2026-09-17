@@ -22,6 +22,7 @@ export async function POST(req:Request){
     const chronological=[...(messages??[])].reverse();
     const ai=await getOpenAI().responses.create({
       model:'gpt-5.6-luna',
+      reasoning:{effort:'none'},
       store:false,
       max_output_tokens:220,
       instructions:'คุณคือ Neramit ผู้ช่วยเก็บ creative brief สำหรับสร้างภาพและโปสเตอร์ ตอบภาษาไทยแบบกระชับและเป็นธรรมชาติ ถามครั้งละไม่เกิน 1-2 เรื่องเฉพาะข้อมูลสำคัญที่ยังขาด ห้ามถามซ้ำสิ่งที่ผู้ใช้ตอบแล้ว ห้ามแต่งข้อมูลแทนผู้ใช้ เมื่อข้อมูลเพียงพอให้สรุปสั้น ๆ และบอกว่าสามารถไปขั้นถัดไปได้',

@@ -1,3 +1,1 @@
-export const DEVICE_TOKEN_KEY='neramit_device_token_v1';
-export function createDeviceToken(){return crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');}
-export function getOrCreateDeviceToken(){if(typeof window==='undefined')return '';const existing=localStorage.getItem(DEVICE_TOKEN_KEY);if(existing)return existing;const token=createDeviceToken();localStorage.setItem(DEVICE_TOKEN_KEY,token);return token;}
+export const DEVICE_TOKEN_KEY='neramit_device_token_v1';export function createDeviceToken(){const bytes=new Uint8Array(32);crypto.getRandomValues(bytes);return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');}export function getOrCreateDeviceToken(){if(typeof window==='undefined')return '';const existing=localStorage.getItem(DEVICE_TOKEN_KEY);if(existing)return existing;const token=createDeviceToken();localStorage.setItem(DEVICE_TOKEN_KEY,token);return token;}

@@ -1,0 +1,1 @@
+import Link from 'next/link';export default function Chat(){return <main className="shell"><Link href="/">← กลับหน้าแรก</Link><section className="card" style={{marginTop:20}}><span className="eyebrow">💬 คุยกับ Neramit</span><h1>เล่าไอเดียของคุณได้เลย</h1><p>หน้าสนทนากำลังเชื่อมกับระบบดราฟต์ใหม่บน Supabase</p></section></main>}

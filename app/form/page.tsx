@@ -1,0 +1,1 @@
+import Link from 'next/link';export default function Form(){return <main className="shell"><Link href="/">← กลับหน้าแรก</Link><section className="card" style={{marginTop:20}}><span className="eyebrow">✦ แบบฟอร์มด่วน</span><h1>จัดรายละเอียดงานของคุณ</h1><p>ระบบใหม่จะบันทึกดราฟต์ลง Supabase โดยไม่ต้องรอ Google Apps Script</p></section></main>}

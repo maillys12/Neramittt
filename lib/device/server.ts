@@ -1,0 +1,3 @@
+import { createHash } from 'node:crypto';import { getServerSupabase } from '@/lib/supabase/server';
+export function hashDeviceToken(token:string){const pepper=process.env.DEVICE_TOKEN_PEPPER;if(!pepper)throw new Error('DEVICE_TOKEN_PEPPER is missing');return createHash('sha256').update(`${pepper}:${token}`).digest('hex');}
+export async function resolveDevice(token:string){if(!token||token.length<32)throw new Error('INVALID_DEVICE_TOKEN');const db=getServerSupabase();const hash=hashDeviceToken(token);const {data,error}=await db.from('devices').upsert({device_token_hash:hash,last_seen_at:new Date().toISOString()},{onConflict:'device_token_hash'}).select('id,status').single();if(error)throw error;if(data.status!=='active')throw new Error('DEVICE_SUSPENDED');return data;}

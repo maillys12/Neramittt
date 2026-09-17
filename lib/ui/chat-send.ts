@@ -1,4 +1,4 @@
-export type OptimisticChatResult = { message: string; brief?: Record<string, unknown> };
+export type OptimisticChatResult = { message: string; brief?: Record<string, unknown>; replies?: string[] };
 
 type Params = {
   message: string;

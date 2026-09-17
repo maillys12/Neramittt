@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { getOrCreateDeviceToken } from '@/lib/device/token';
 import { BrandMark } from './BrandMark';
+import { NeramitIcon } from './NeramitIcon';
 
 type Props = { quota?: string; active?: 'create'|'history'|'admin' };
 
@@ -40,8 +41,8 @@ export function AppHeader({ quota, active = 'create' }: Props) {
         <a href="#how">วิธีใช้งาน</a>
       </nav>
       <div className="headerActions">
-        <span className="quotaPill" aria-label={`โควตาคงเหลือ ${resolvedQuota}`}><b>⚡</b> เหลือ {resolvedQuota}</span>
-        <button className="menuButton" aria-label="เปิดเมนู" aria-expanded={open} onClick={()=>setOpen(v=>!v)}>☰</button>
+        <span className="quotaPill" aria-label={`โควตาคงเหลือ ${resolvedQuota}`}><NeramitIcon name="spark" size={18}/> เหลือ {resolvedQuota}</span>
+        <button className="menuButton" aria-label="เปิดเมนู" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><span/><span/><span/></button>
       </div>
     </header>
   );

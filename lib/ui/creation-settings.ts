@@ -32,6 +32,6 @@ export function platformInstruction(platform: TargetPlatform) {
   return 'จัดเป็นพรอมต์กลางที่นำไปใช้กับ AI สร้างภาพหลายแพลตฟอร์มได้ โดยไม่ผูกกับ syntax เฉพาะราย';
 }
 
-export function languageInstruction(language: PromptLanguage) {
-  return language === 'en' ? 'Write the final prompt in English.' : 'เขียนพรอมต์ฉบับสุดท้ายเป็นภาษาไทย';
+export function languageInstruction(_language: PromptLanguage) {
+  return 'Write every final image-generation prompt entirely in English. Conversation/UI language must never cause Thai text to appear inside the final image prompt.';
 }

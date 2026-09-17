@@ -6,7 +6,7 @@ import{getServerSupabase}from'@/lib/supabase/server';
 import{getOpenAI}from'@/lib/openai/client';
 import{normalizeCreationSettings,settingsPatch}from'@/lib/ui/creation-settings';
 import{buildChatInstructions}from'@/lib/ui/chat-instructions';
-import{appendExactFinalRemark,buildPromptRepairInstructions,hasFencedPromptBlocks,sanitizeModelText,validateFinalPromptResponse}from'@/lib/ui/image-prompt-policy';
+import{buildPromptRepairInstructions,hasFencedPromptBlocks,sanitizeModelText,validateFinalPromptResponse}from'@/lib/ui/image-prompt-policy';
 
 const CreationSettingsSchema=z.object({platform:z.enum(['chatgpt','gemini','canva','generic']),language:z.enum(['th','en']),variantCount:z.union([z.literal(1),z.literal(2),z.literal(3)])});
 const S=z.object({draftId:z.string().uuid(),message:z.string().min(1).max(5000),settings:CreationSettingsSchema.optional()});
@@ -39,7 +39,6 @@ export async function POST(req:Request){
     let text=sanitizeModelText(ai.output_text||'รับข้อมูลแล้วครับ เล่ารายละเอียดเพิ่มได้เลย');
     const looksLikeFinal=hasFencedPromptBlocks(text)||text.includes('Subject & Medium:')||text.includes('Parameters:');
     if(looksLikeFinal){
-      text=appendExactFinalRemark(text);
       let validation=validateFinalPromptResponse(text,settings.variantCount);
       if(!validation.ok){
         const repaired=await getOpenAI().responses.create({
@@ -50,7 +49,7 @@ export async function POST(req:Request){
           instructions:buildPromptRepairInstructions(settings.variantCount),
           input:`Repair this response without changing the user's intended visual requirements:\n\n${text}`
         });
-        text=appendExactFinalRemark(sanitizeModelText(repaired.output_text||''));
+        text=sanitizeModelText(repaired.output_text||'');
         validation=validateFinalPromptResponse(text,settings.variantCount);
         if(!validation.ok)throw new Error('PROMPT_FORMAT_FAILED');
       }

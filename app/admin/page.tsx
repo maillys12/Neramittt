@@ -1,0 +1,1 @@
+import AdminClient from'@/components/AdminClient';export default function Admin(){return <main className="shell"><section><span className="eyebrow">⚙ Admin</span><h1>ศูนย์ควบคุม Neramit</h1><AdminClient/></section></main>}

@@ -1,0 +1,32 @@
+name: Next CI
+
+on:
+  push:
+    branches:
+      - migration/vercel-supabase
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://ulczxopzyclihsvuavzc.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
+      SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+      OPENAI_API_KEY: test-openai-key
+      DEVICE_TOKEN_PEPPER: ci-device-pepper
+      ADMIN_PASSWORD_HASH: 6a934b45144e3757fcb7c12ef2f57dc66f89562738bf9622c07820c3ed3f74a
+      CRON_SECRET: ci-cron-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build

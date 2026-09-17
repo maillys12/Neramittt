@@ -10,6 +10,7 @@ import {NeramitIcon} from '@/components/ui/NeramitIcon';
 import {normalizeCreationSettings,settingsPatch,type CreationSettings} from '@/lib/ui/creation-settings';
 import {sendChatOptimistically} from '@/lib/ui/chat-send';
 import {splitChatMarkdown} from '@/lib/ui/chat-markdown';
+import {hasFencedPromptBlocks,POST_OUTPUT_GUIDANCE_THAI} from '@/lib/ui/image-prompt-policy';
 
 type Item={role:'user'|'assistant';content:string};
 type Brief=Record<string,unknown>;
@@ -52,7 +53,7 @@ export default function ChatClient(){
       <div className="chatToolbar"><CreationSettingsControls value={settings} onChange={persistSettings} compact/></div>
       <div className="chatBox" aria-live="polite">
         {items.length===0&&<div className="starterMessage"><span className="aiAvatar"><NeramitIcon name="spark" size={21}/></span><div><strong>คุยกับเนรมิต</strong><p>{starter}</p></div></div>}
-        {items.map((x,i)=><div key={i} className={`messageRow ${x.role}`}><span className="messageAvatar" aria-hidden="true"><NeramitIcon name={x.role==='assistant'?'spark':'user'} size={18}/></span>{x.role==='assistant'?<div className="bubble assistant bubble--rich"><div className="assistantContent">{splitChatMarkdown(x.content).map((segment,j)=>segment.type==='code'?<div className="promptCodeBlock" key={`${i}-${j}`}><div className="promptCodeHeader"><span>{settings.language==='en'?'Prompt':'พรอมต์'}</span><button type="button" onClick={()=>void copyPrompt(segment.content)}><NeramitIcon name="document" size={16}/>{settings.language==='en'?'Copy':'คัดลอก'}</button></div><pre><code>{segment.content}</code></pre></div>:<div className="assistantText" key={`${i}-${j}`}>{segment.content}</div>)}</div></div>:<div className="bubble user">{x.content}</div>}</div>)}
+        {items.map((x,i)=><div key={i} className={`messageRow ${x.role}`}><span className="messageAvatar" aria-hidden="true"><NeramitIcon name={x.role==='assistant'?'spark':'user'} size={18}/></span>{x.role==='assistant'?<div className="bubble assistant bubble--rich"><div className="assistantContent">{splitChatMarkdown(x.content).map((segment,j)=>segment.type==='code'?<div className="promptCodeBlock" key={`${i}-${j}`}><div className="promptCodeHeader"><span>Prompt</span><button type="button" onClick={()=>void copyPrompt(segment.content)}><NeramitIcon name="document" size={16}/>คัดลอก</button></div><pre><code>{segment.content}</code></pre></div>:<div className="assistantText" key={`${i}-${j}`}>{segment.content}</div>)}</div>{hasFencedPromptBlocks(x.content)&&<div className="summaryTip" role="note"><NeramitIcon name="spark" size={20}/><span>{POST_OUTPUT_GUIDANCE_THAI}</span></div>}</div>:<div className="bubble user">{x.content}</div>}</div>)}
         {busy&&<AiThinkingBubble/>}
         <div ref={chatEndRef} aria-hidden="true"/>
       </div>

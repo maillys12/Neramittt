@@ -28,12 +28,14 @@ export async function POST(req:Request){
       input:chronological.map(m=>`${m.role}: ${m.content}`).join('\n')
     });
     const text=ai.output_text||'รับข้อมูลแล้วครับ';
-    const{error:assistantInsertError}=await db.from('chat_messages').insert({draft_id:draft.id,role:'assistant',content:text});
-    if(assistantInsertError)throw assistantInsertError;
     const prior=draft.brief&&typeof draft.brief==='object'&&!Array.isArray(draft.brief)?draft.brief as Record<string,unknown>:{};
     const nextBrief={...prior,conversation_summary:text};
-    const{error:updateError}=await db.from('drafts').update({brief:nextBrief,updated_at:new Date().toISOString()}).eq('id',draft.id).eq('device_id',device.id);
-    if(updateError)throw updateError;
+    const [assistantWrite,draftWrite]=await Promise.all([
+      db.from('chat_messages').insert({draft_id:draft.id,role:'assistant',content:text}),
+      db.from('drafts').update({brief:nextBrief,updated_at:new Date().toISOString()}).eq('id',draft.id).eq('device_id',device.id)
+    ]);
+    if(assistantWrite.error)throw assistantWrite.error;
+    if(draftWrite.error)throw draftWrite.error;
     return NextResponse.json({ok:true,message:text,brief:nextBrief});
   }catch(e){
     return NextResponse.json({ok:false,error:e instanceof Error?e.message:'CHAT_FAILED'},{status:400});

@@ -1,1 +1,10 @@
-import Link from'next/link';import ChatClient from'@/components/ChatClient';export default function Chat(){return <main className="shell"><Link href="/">← กลับหน้าแรก</Link><section className="card pageCard"><span className="eyebrow">💬 คุยกับ Neramit</span><h1>เล่าไอเดียของคุณได้เลย</h1><ChatClient/></section></main>}
+import ChatClient from '@/components/ChatClient';
+import { AppHeader } from '@/components/ui/AppHeader';
+
+export default function Chat(){
+  return <main className="siteShell innerPage">
+    <AppHeader quota="10 ครั้งวันนี้" />
+    <section className="pageIntro pageIntro--compact"><span className="pageMascot">✏️</span><div><h1>คุยกับ<span className="gradientText">เนรมิต</span></h1><p>เล่าไอเดียของคุณ แล้วเราช่วยต่อยอดทีละขั้น</p></div></section>
+    <ChatClient/>
+  </main>
+}

@@ -12,4 +12,22 @@ describe('finished design prompt guidance', () => {
     expect(instructions).toContain('form fields');
     expect(instructions).toContain('pseudo-text');
   });
+
+  it('acts as a creative director before writing the prompt', () => {
+    const instructions = buildChatInstructions(defaultCreationSettings);
+
+    expect(instructions).toContain('communication objective');
+    expect(instructions).toContain('visual hierarchy');
+    expect(instructions).toContain('Do not turn every user detail into a visual object');
+    expect(instructions).toContain('make reasonable art-direction decisions yourself');
+  });
+
+  it('allows final prompts to be returned in Thai when the selected UI language is Thai', () => {
+    const instructions = buildChatInstructions(defaultCreationSettings);
+
+    expect(instructions).toContain('final prompt language');
+    expect(instructions).toContain('Thai');
+    expect(instructions).not.toContain('must be written entirely in English');
+    expect(instructions).not.toContain('never include Thai characters');
+  });
 });

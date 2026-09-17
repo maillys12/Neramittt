@@ -1,0 +1,1 @@
+import{NextResponse}from'next/server';import{hashAdminSession}from'@/lib/admin/auth';import{getServerSupabase}from'@/lib/supabase/server';export async function POST(req:Request){const token=req.headers.get('x-neramit-admin');if(token)await getServerSupabase().from('admin_sessions').delete().eq('token_hash',hashAdminSession(token));return NextResponse.json({ok:true});}

@@ -1,0 +1,1 @@
+import Link from'next/link';import HistoryClient from'@/components/HistoryClient';export default function History(){return <main className="shell"><Link href="/">← หน้าแรก</Link><section className="card pageCard"><span className="eyebrow">◷ ประวัติของฉัน</span><h1>พรอมต์ที่ผ่านมา</h1><HistoryClient/></section></main>}

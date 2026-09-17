@@ -1,0 +1,5 @@
+-- Neramit core schema is managed in Supabase project ulczxopzyclihsvuavzc.
+-- Tables: devices, drafts, chat_messages, reference_images, prompt_jobs,
+-- prompts, daily_usage, settings, admin_sessions, admin_audit_logs, error_logs.
+-- All application tables have RLS enabled and are accessed by Vercel server routes.
+-- Atomic RPCs: reserve_prompt_quota(), finalize_prompt_quota().

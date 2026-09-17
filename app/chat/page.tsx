@@ -1,0 +1,1 @@
+import Link from'next/link';import ChatClient from'@/components/ChatClient';export default function Chat(){return <main className="shell"><Link href="/">← กลับหน้าแรก</Link><section className="card pageCard"><span className="eyebrow">💬 คุยกับ Neramit</span><h1>เล่าไอเดียของคุณได้เลย</h1><ChatClient/></section></main>}

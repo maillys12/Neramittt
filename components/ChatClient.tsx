@@ -7,22 +7,26 @@ import {Toast} from '@/components/ui/Toast';
 import {chatSummaryRows} from '@/lib/ui/format';
 import {CreationSettingsControls} from '@/components/ui/CreationSettingsControls';
 import {NeramitIcon} from '@/components/ui/NeramitIcon';
+import {SmartReplyCards} from '@/components/ui/SmartReplyCards';
 import {normalizeCreationSettings,settingsPatch,type CreationSettings} from '@/lib/ui/creation-settings';
 import {sendChatOptimistically} from '@/lib/ui/chat-send';
 import {splitChatMarkdown} from '@/lib/ui/chat-markdown';
 import {hasFencedPromptBlocks,POST_OUTPUT_GUIDANCE_THAI} from '@/lib/ui/image-prompt-policy';
+import {getThinkingStatus} from '@/lib/ui/thinking-status';
 
 type Item={role:'user'|'assistant';content:string};
 type Brief=Record<string,unknown>;
 
 export default function ChatClient(){
-  const[draft,setDraft]=useState('');const[msg,setMsg]=useState('');const[items,setItems]=useState<Item[]>([]);const[busy,setBusy]=useState(false);const[brief,setBrief]=useState<Brief>({});const[error,setError]=useState('');const[notice,setNotice]=useState('');const[settings,setSettings]=useState<CreationSettings>(()=>normalizeCreationSettings({}));const chatEndRef=useRef<HTMLDivElement|null>(null);
+  const[draft,setDraft]=useState('');const[msg,setMsg]=useState('');const[items,setItems]=useState<Item[]>([]);const[busy,setBusy]=useState(false);const[brief,setBrief]=useState<Brief>({});const[error,setError]=useState('');const[notice,setNotice]=useState('');const[settings,setSettings]=useState<CreationSettings>(()=>normalizeCreationSettings({}));const[smartReplies,setSmartReplies]=useState<string[]>([]);const[thinkingElapsed,setThinkingElapsed]=useState(0);const chatEndRef=useRef<HTMLDivElement|null>(null);
   const summary=useMemo(()=>chatSummaryRows(brief),[brief]);
-  useEffect(()=>{if(items.length||busy)chatEndRef.current?.scrollIntoView({behavior:'smooth',block:'nearest'});},[items,busy]);
+  const thinkingLabel=useMemo(()=>getThinkingStatus(thinkingElapsed),[thinkingElapsed]);
+  useEffect(()=>{if(items.length||busy)chatEndRef.current?.scrollIntoView({behavior:'smooth',block:'nearest'});},[items,busy,smartReplies]);
+  useEffect(()=>{if(!busy){setThinkingElapsed(0);return;}const started=Date.now();const tick=()=>setThinkingElapsed(Date.now()-started);tick();const timer=window.setInterval(tick,800);return()=>window.clearInterval(timer);},[busy]);
   async function persistSettings(next:CreationSettings){setSettings(next);setBrief(v=>({...v,...settingsPatch(next)}));if(!draft)return;try{await fetch(`/api/drafts/${draft}`,{method:'PATCH',headers:{'content-type':'application/json','x-neramit-device':getOrCreateDeviceToken()},body:JSON.stringify({brief:{...brief,...settingsPatch(next)}})});}catch{}}
   async function copyPrompt(text:string){try{await navigator.clipboard.writeText(text);setNotice(settings.language==='en'?'Prompt copied':'คัดลอกพรอมต์แล้ว');window.setTimeout(()=>setNotice(''),1600);}catch{setError(settings.language==='en'?'Could not copy the prompt':'คัดลอกพรอมต์ไม่สำเร็จ');}}
-  async function send(){
-    const original=msg.trim();if(!original||busy)return;setBusy(true);setError('');
+  async function send(override?:string){
+    const original=(override??msg).trim();if(!original||busy)return;setBusy(true);setError('');setSmartReplies([]);
     try{
       const result=await sendChatOptimistically({
         message:original,
@@ -37,11 +41,12 @@ export default function ChatClient(){
         requestAssistant:async(id,user)=>{
           const r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json','x-neramit-device':getOrCreateDeviceToken()},body:JSON.stringify({draftId:id,message:user,settings})});
           const x=await r.json();if(!r.ok)throw new Error(x.error||'ส่งข้อความไม่สำเร็จ');
-          return{message:x.message,brief:x.brief&&typeof x.brief==='object'?x.brief:undefined};
+          return{message:x.message,brief:x.brief&&typeof x.brief==='object'?x.brief:undefined,replies:Array.isArray(x.replies)?x.replies.filter((value:unknown):value is string=>typeof value==='string'):[]};
         },
       });
       if(!result)return;
       setItems(v=>[...v,{role:'assistant',content:result.message}]);
+      setSmartReplies(result.replies??[]);
       if(result.brief){setBrief(result.brief);setSettings(normalizeCreationSettings(result.brief));}
     }catch(e){setError(e instanceof Error?e.message:'เกิดข้อผิดพลาด');}
     finally{setBusy(false);}
@@ -54,11 +59,12 @@ export default function ChatClient(){
       <div className="chatBox" aria-live="polite">
         {items.length===0&&<div className="starterMessage"><span className="aiAvatar"><NeramitIcon name="spark" size={21}/></span><div><strong>คุยกับเนรมิต</strong><p>{starter}</p></div></div>}
         {items.map((x,i)=><div key={i} className={`messageRow ${x.role}`}><span className="messageAvatar" aria-hidden="true"><NeramitIcon name={x.role==='assistant'?'spark':'user'} size={18}/></span>{x.role==='assistant'?<div className="bubble assistant bubble--rich"><div className="assistantContent">{splitChatMarkdown(x.content).map((segment,j)=>segment.type==='code'?<div className="promptCodeBlock" key={`${i}-${j}`}><div className="promptCodeHeader"><span>Prompt</span><button type="button" onClick={()=>void copyPrompt(segment.content)}><NeramitIcon name="document" size={16}/>คัดลอก</button></div><pre><code>{segment.content}</code></pre></div>:<div className="assistantText" key={`${i}-${j}`}>{segment.content}</div>)}</div>{hasFencedPromptBlocks(x.content)&&<div className="summaryTip" role="note"><NeramitIcon name="spark" size={20}/><span>{POST_OUTPUT_GUIDANCE_THAI}</span></div>}</div>:<div className="bubble user">{x.content}</div>}</div>)}
-        {busy&&<AiThinkingBubble/>}
+        {!busy&&smartReplies.length>0&&<SmartReplyCards options={smartReplies} disabled={busy} onSelect={value=>void send(value)} onCustomSubmit={value=>void send(value)}/>}
+        {busy&&<AiThinkingBubble label={thinkingLabel}/>}
         <div ref={chatEndRef} aria-hidden="true"/>
       </div>
-      <div className="composerCard"><textarea value={msg} onChange={e=>setMsg(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();void send();}}} placeholder={placeholder} rows={2}/><button className="sendButton" onClick={send} disabled={busy||!msg.trim()} aria-label="ส่งข้อความ"><NeramitIcon name="send" size={23}/></button></div>
-      <div className="chatBottom"><span>แนบภาพได้สูงสุด 4 ภาพ</span><button className="textButton iconTextButton" onClick={()=>{setItems([]);setBrief({});setDraft('');setSettings(normalizeCreationSettings({}));}}><NeramitIcon name="refresh" size={16}/>เริ่มใหม่</button></div>
+      <div className="composerCard"><textarea value={msg} onChange={e=>setMsg(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();void send();}}} placeholder={placeholder} rows={2}/><button className="sendButton" onClick={()=>void send()} disabled={busy||!msg.trim()} aria-label="ส่งข้อความ"><NeramitIcon name="send" size={23}/></button></div>
+      <div className="chatBottom"><span>แนบภาพได้สูงสุด 4 ภาพ</span><button className="textButton iconTextButton" onClick={()=>{setItems([]);setBrief({});setDraft('');setSmartReplies([]);setSettings(normalizeCreationSettings({}));}}><NeramitIcon name="refresh" size={16}/>เริ่มใหม่</button></div>
       {error&&<Toast message={error} tone="error"/>}{notice&&<Toast message={notice} tone="success"/>}
     </section>
     <aside className="summaryPanel">

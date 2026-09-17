@@ -1,1 +1,2 @@
-import Link from'next/link';import HistoryClient from'@/components/HistoryClient';export default function History(){return <main className="shell"><Link href="/">← หน้าแรก</Link><section className="card pageCard"><span className="eyebrow">◷ ประวัติของฉัน</span><h1>พรอมต์ที่ผ่านมา</h1><HistoryClient/></section></main>}
+import HistoryClient from'@/components/HistoryClient';import{AppHeader}from'@/components/ui/AppHeader';
+export default function History(){return <main className="siteShell innerPage"><AppHeader active="history" quota="9 ครั้งวันนี้"/><section className="pageIntro"><span className="pageMascot">📝</span><div><h1>ประวัติของฉัน</h1><p>กลับมาเปิดไอเดียเดิม แล้วต่อยอดได้ทุกเมื่อ</p></div></section><HistoryClient/></main>}

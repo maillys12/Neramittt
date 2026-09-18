@@ -1,1 +1,14 @@
-{"framework":"nextjs","crons":[{"path":"/api/cron/cleanup","schedule":"17 3 * * *"}]}
+{
+  "framework": "nextjs",
+  "git": {
+    "deploymentEnabled": {
+      "design/admin-ai-control-center": false
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/cleanup",
+      "schedule": "17 3 * * *"
+    }
+  ]
+}

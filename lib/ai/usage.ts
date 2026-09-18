@@ -66,14 +66,18 @@ export async function recordAIUsage(input: {
     });
     if (error) throw error;
     if (input.status === 'error') {
-      await createAdminNotification({
-        severity: 'warning',
-        source: 'ai_provider',
-        title: 'AI request error',
-        message: `${input.stage} failed on ${input.model}.`,
-        metadata: { stage: input.stage, model: input.model, requestId: input.requestId },
-        dedupeKey: `ai-error:${input.stage}:${input.model}`,
-      });
+      try {
+        await createAdminNotification({
+          severity: 'warning',
+          source: 'ai_provider',
+          title: 'AI request error',
+          message: `${input.stage} failed on ${input.model}.`,
+          metadata: { stage: input.stage, model: input.model, requestId: input.requestId },
+          dedupeKey: `ai-error:${input.stage}:${input.model}`,
+        });
+      } catch {
+        // Usage accounting is already durable; notification failure is non-fatal.
+      }
     }
     return { ok: true as const };
   } catch (error) {

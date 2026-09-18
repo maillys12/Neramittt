@@ -7,8 +7,10 @@ import { getAIRuntimeConfig } from '@/lib/ai/config';
 import { getPublishedPrompt } from '@/lib/ai/prompts';
 import { getBudgetGuardForStage } from '@/lib/ai/runtime';
 
-function summarize(rows: Array<Record<string, unknown>>) {
-  return rows.reduce((acc,row)=>({
+type UsageSummary = { costThb:number; requests:number; inputTokens:number; outputTokens:number };
+
+function summarize(rows: Array<Record<string, unknown>>): UsageSummary {
+  return rows.reduce<UsageSummary>((acc,row)=>({
     costThb: acc.costThb + Number(row.estimated_cost_thb ?? 0),
     requests: acc.requests + 1,
     inputTokens: acc.inputTokens + Number(row.input_tokens ?? 0),

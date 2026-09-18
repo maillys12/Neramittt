@@ -7,7 +7,7 @@ type Overview = {
   today:{costThb:number;creditUsedThb:number;requests:number;inputTokens:number;outputTokens:number};
   month:{costThb:number;creditUsedThb:number;requests:number;inputTokens:number;outputTokens:number};
   unreadNotifications:number;
-  runtime:{safeMode:boolean;autoRoutingEnabled:boolean};
+  runtime:{safeMode:boolean;autoRoutingEnabled:boolean;operatingMode:string};
   publishedPrompts:{system:number|null;creativeDirector:number|null};
 };
 
@@ -58,7 +58,7 @@ export default function AIOverviewTab({token}:{token:string}) {
       <article className="aiCard">
         <h3>Production AI</h3>
         <p>System Prompt: <strong>{systemLabel}</strong></p>
-        <p>Creative Director: <strong>{creativeLabel}</strong></p>
+        <p>Creative Director: <strong>{creativeLabel}</strong></p><p>Operating Mode: <strong>{data.runtime.operatingMode}</strong></p>
         <button className="outlineButton" onClick={()=>void load()}>รีเฟรช</button>
       </article>
     </div>

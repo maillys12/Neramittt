@@ -1,6 +1,7 @@
 import { getServerSupabase } from '@/lib/supabase/server';
 import { calculateEstimatedCost } from '@/lib/ai/pricing';
 import type { AIExecutionMode, AIStage, TokenUsage } from '@/lib/ai/types';
+import { createAdminNotification } from '@/lib/ai/notifications';
 
 type ProviderUsageShape = {
   usage?: {
@@ -64,6 +65,16 @@ export async function recordAIUsage(input: {
       metadata: input.metadata ?? {},
     });
     if (error) throw error;
+    if (input.status === 'error') {
+      await createAdminNotification({
+        severity: 'warning',
+        source: 'ai_provider',
+        title: 'AI request error',
+        message: `${input.stage} failed on ${input.model}.`,
+        metadata: { stage: input.stage, model: input.model, requestId: input.requestId },
+        dedupeKey: `ai-error:${input.stage}:${input.model}`,
+      });
+    }
     return { ok: true as const };
   } catch (error) {
     await db.from('error_logs').insert({

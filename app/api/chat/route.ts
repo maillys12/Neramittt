@@ -12,6 +12,7 @@ import { AssistantTurnSchema, ChatRequestSchema, CreationSettingsSchema, type Ch
 import { encodeChatEvent } from '@/lib/chat/ndjson';
 import { runResearchChat } from '@/lib/chat/orchestrator';
 import { getBudgetGuardForStage } from '@/lib/ai/runtime';
+import { getAIRuntimeConfig } from '@/lib/ai/config';
 import { resolveModelForStage, isEligibleFallbackError } from '@/lib/ai/model-router';
 import { recordAIUsage } from '@/lib/ai/usage';
 import { getPublishedPrompt } from '@/lib/ai/prompts';
@@ -34,6 +35,8 @@ function objectBrief(value: unknown) {
 
 async function loadPublishedOverrides(): Promise<PublishedPromptOverrides> {
   try {
+    const runtime = await getAIRuntimeConfig();
+    if (runtime.safeMode) return {};
     const [system, creative] = await Promise.all([
       getPublishedPrompt('system'),
       getPublishedPrompt('creative_director'),

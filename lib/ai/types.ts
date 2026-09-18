@@ -29,6 +29,7 @@ export type AIRuntimeConfig = {
 export type BudgetSnapshot = {
   enabled: boolean;
   monthlyBudgetThb: number;
+  billingPeriodAnchor: number;
   usedThb: number;
   remainingThb: number;
   usedPercent: number;

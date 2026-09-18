@@ -31,6 +31,11 @@ function normalizeStage(row: Record<string, unknown>, stage: AIStage): StageRunt
 }
 
 export async function getAIRuntimeConfig(options?: { bypassCache?: boolean }): Promise<AIRuntimeConfig> {
+  if (process.env.NERAMIT_SAFE_MODE === 'true') {
+    const forced = cloneSafe();
+    forced.safeMode = true;
+    return forced;
+  }
   if (!options?.bypassCache && cached && cached.expiresAt > Date.now()) return cached.value;
   const fallback = cloneSafe();
   try {

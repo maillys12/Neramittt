@@ -2,7 +2,8 @@
   "framework": "nextjs",
   "git": {
     "deploymentEnabled": {
-      "design/admin-ai-control-center": false
+      "design/admin-ai-control-center": false,
+      "ci/**": false
     }
   },
   "crons": [

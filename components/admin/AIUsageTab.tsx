@@ -13,29 +13,33 @@ const money=(n:number)=>new Intl.NumberFormat('th-TH',{maximumFractionDigits:4})
 
 export default function AIUsageTab({token}:{token:string}) {
   const [range,setRange]=useState('30d');
-  const [metric,setMetric]=useState<'cost'|'tokens'|'requests'>('cost');
+  const [metric,setMetric]=useState<'cost'|'credit'|'tokens'|'requests'>('cost');
+  const [customFrom,setCustomFrom]=useState('');
+  const [customTo,setCustomTo]=useState('');
   const [includeTests,setIncludeTests]=useState(false);
   const [data,setData]=useState<Usage|null>(null);
 
   async function load() {
-    const url='/api/admin/ai/usage?range='+encodeURIComponent(range)+'&includeTests='+(includeTests?'true':'false');
+    let url='/api/admin/ai/usage?range='+encodeURIComponent(range)+'&includeTests='+(includeTests?'true':'false');
+    if(range==='custom'&&customFrom&&customTo){url+='&from='+encodeURIComponent(new Date(customFrom).toISOString())+'&to='+encodeURIComponent(new Date(customTo).toISOString());}
     const r=await fetch(url,{headers:{'x-neramit-admin':token}});
     const x=await r.json();
     if(r.ok)setData(x);
   }
-  useEffect(()=>{void load();},[range,includeTests,token]);
+  useEffect(()=>{if(range!=='custom'||(customFrom&&customTo))void load();},[range,includeTests,token,customFrom,customTo]);
 
-  const values=(data?.series??[]).map(x=>metric==='cost'?x.costThb:metric==='tokens'?x.tokens:x.requests);
+  const values=(data?.series??[]).map(x=>(metric==='cost'||metric==='credit')?x.costThb:metric==='tokens'?x.tokens:x.requests);
   const max=Math.max(1,...values);
 
   return <div className="aiStack">
     <div className="aiToolbar">
       <select value={range} onChange={e=>setRange(e.target.value)}>
-        <option value="today">วันนี้</option><option value="7d">7 วัน</option><option value="30d">30 วัน</option><option value="month">เดือนนี้</option><option value="all">ทั้งหมด</option>
+        <option value="today">วันนี้</option><option value="7d">7 วัน</option><option value="30d">30 วัน</option><option value="month">เดือนนี้</option><option value="billing">รอบบิลปัจจุบัน</option><option value="all">ทั้งหมด</option><option value="custom">กำหนดเอง</option>
       </select>
       <select value={metric} onChange={e=>setMetric(e.target.value as typeof metric)}>
-        <option value="cost">Cost / Credit Used</option><option value="tokens">Tokens</option><option value="requests">Requests</option>
+        <option value="cost">Cost</option><option value="credit">Credit Used</option><option value="tokens">Tokens</option><option value="requests">Requests</option>
       </select>
+      {range==='custom'&&<><input type="datetime-local" value={customFrom} onChange={e=>setCustomFrom(e.target.value)}/><input type="datetime-local" value={customTo} onChange={e=>setCustomTo(e.target.value)}/></>}
       <label className="aiCheck"><input type="checkbox" checked={includeTests} onChange={e=>setIncludeTests(e.target.checked)}/>รวม Draft Test</label>
     </div>
 
@@ -51,7 +55,7 @@ export default function AIUsageTab({token}:{token:string}) {
         <h3>แนวโน้มการใช้งาน</h3>
         <div className="aiBars">
           {data.series.length?data.series.map(p=>{
-            const value=metric==='cost'?p.costThb:metric==='tokens'?p.tokens:p.requests;
+            const value=(metric==='cost'||metric==='credit')?p.costThb:metric==='tokens'?p.tokens:p.requests;
             return <div className="aiBar" key={p.date} title={p.date+': '+value}><i style={{height:String(Math.max(3,value/max*100))+'%'}}/><small>{p.date.slice(5)}</small></div>;
           }):<p className="mutedText">ยังไม่มีข้อมูล</p>}
         </div>

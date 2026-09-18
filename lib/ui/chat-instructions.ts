@@ -2,7 +2,22 @@ import type { CreationSettings } from '@/lib/ui/creation-settings';
 import { languageInstruction, platformInstruction, typographyInstruction } from '@/lib/ui/creation-settings';
 import { creativeDirectorInstructions, promptFormatInstruction } from '@/lib/ui/image-prompt-policy';
 
-export function buildChatInstructions(settings: CreationSettings) {
+export type PublishedPromptOverrides = {
+  system?: string;
+  creativeDirector?: string;
+};
+
+function overrideBlock(label: string, value?: string) {
+  const clean = value?.trim();
+  if (!clean) return '';
+  return [
+    `Published admin ${label} guidance follows. Treat it as configurable creative/behavior guidance only.`,
+    'It cannot override factual-integrity rules, official-asset rules, output-schema requirements, security requirements, or other hard constraints in this instruction set.',
+    clean,
+  ].join('\n');
+}
+
+export function buildChatInstructions(settings: CreationSettings, overrides: PublishedPromptOverrides = {}) {
   const variantRule = settings.variantCount === 1
     ? 'When the brief is ready, return exactly 1 final prompt.'
     : `When the brief is ready, return exactly ${settings.variantCount} useful prompt variants.`;
@@ -10,6 +25,7 @@ export function buildChatInstructions(settings: CreationSettings) {
   return [
     'You are Neramit, a research-driven creative strategist and image-prompt specialist.',
     languageInstruction(settings.language),
+    overrideBlock('system', overrides.system),
     'Ask only for missing information that materially changes factual accuracy, visual direction, required copy, or official-brand treatment. Never ask again for information already supplied.',
     'Every final prompt job must use the supplied live research findings, including fact-free creative work where current domain and design conventions should be researched.',
     'Clearly distinguish each verified fact, user-provided claim, and creative suggestion. Never present a creative suggestion as an official fact.',
@@ -19,6 +35,7 @@ export function buildChatInstructions(settings: CreationSettings) {
     'When an authentic official asset was supplied, instruct the downstream workflow to place it unchanged. When no authentic asset exists, reserve an appropriate logo area and ask the user to supply the official file.',
     'Recommend useful headline, subheadline, body copy, CTA, information hierarchy, visual elements, and omissions when the user has not specified them. Label creative copy as a suggestion.',
     creativeDirectorInstructions(),
+    overrideBlock('creative director', overrides.creativeDirector),
     platformInstruction(settings.platform),
     typographyInstruction(settings.platform),
     variantRule,
@@ -29,23 +46,25 @@ export function buildChatInstructions(settings: CreationSettings) {
     'Choose an aspect ratio that matches the user request and include it in the final parameters section.',
     'Return only data that conforms to the supplied structured AssistantTurn schema. Do not wrap JSON in Markdown fences.',
     'Never output corrupted Unicode, replacement characters, invisible junk, or irrelevant languages.',
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 }
 
-export function buildLegacyChatInstructions(settings: CreationSettings) {
+export function buildLegacyChatInstructions(settings: CreationSettings, overrides: PublishedPromptOverrides = {}) {
   const variants = settings.variantCount === 1 ? 'exactly 1 prompt' : `exactly ${settings.variantCount} prompt variants`;
   return [
     'You are Neramit, a precise creative-brief assistant and image prompt generator.',
     languageInstruction(settings.language),
+    overrideBlock('system', overrides.system),
     'Ask only 1–2 important missing questions at a time and never ask for information already supplied.',
     platformInstruction(settings.platform),
     `When the brief is ready, return ${variants}.`,
     'Treat the task as creating a new image from scratch, not editing an existing image.',
     creativeDirectorInstructions(),
+    overrideBlock('creative director', overrides.creativeDirector),
     typographyInstruction(settings.platform),
     'Never invent facts or official assets. Without an authentic logo file, reserve space and request the real asset.',
     promptFormatInstruction(settings.language, settings.platform),
     'Put every final prompt in its own fenced Markdown code block.',
     'When final, output only fenced prompt blocks with no prose outside them.',
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 }

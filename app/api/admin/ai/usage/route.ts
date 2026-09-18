@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/admin/auth';
 import { getServerSupabase } from '@/lib/supabase/server';
+import { getBudgetSnapshot } from '@/lib/ai/budget';
 
 const Query=z.object({
   range:z.enum(['today','7d','30d','month','billing','all','custom']).default('30d'),
@@ -19,7 +20,7 @@ function rangeWindow(range:string,from?:string,to?:string){
   if(range==='today')return {from:new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate())),to:now};
   if(range==='7d')return {from:new Date(now.getTime()-7*86400000),to:now};
   if(range==='30d')return {from:new Date(now.getTime()-30*86400000),to:now};
-  if(range==='month'||range==='billing')return {from:new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1)),to:now};
+  if(range==='month')return {from:new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1)),to:now};
   return {from:new Date(0),to:now};
 }
 
@@ -28,7 +29,9 @@ export async function GET(req:Request){
     await requireAdmin(req);
     const url=new URL(req.url);
     const q=Query.parse(Object.fromEntries(url.searchParams.entries()));
-    const window=rangeWindow(q.range,q.from,q.to);
+    const window=q.range==='billing'
+      ? await getBudgetSnapshot().then(b=>({from:new Date(b.periodStart),to:new Date(Math.min(Date.now(),new Date(b.periodEnd).getTime()))}))
+      : rangeWindow(q.range,q.from,q.to);
     if(window.from>window.to)throw new Error('DATE_RANGE_INVALID');
     const db=getServerSupabase();
     let query=db.from('ai_usage_events').select('request_id,execution_mode,stage,model,input_tokens,output_tokens,cached_tokens,tool_calls,estimated_cost_usd,estimated_cost_thb,duration_ms,status,error_code,created_at')

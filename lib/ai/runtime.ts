@@ -45,19 +45,23 @@ export async function getBudgetGuardForStage(stage: AIStage, options?: { notify?
       for (const action of evaluated.actions) {
         const notice = actionNotification(action, stage, budget.usedPercent);
         if (!notice) continue;
-        const created = await createAdminNotification({
-          ...notice,
-          source: 'budget_guard',
-          metadata: { action: action.type, stage, mode: evaluated.mode },
-          dedupeKey: `budget:${budget.periodStart}:${stage}:${action.type}`,
-        });
-        if (created) {
-          await writeAdminAudit({
-            action: 'ai_budget_guard_triggered',
-            subjectType: 'ai_budget_guard',
-            subjectId: stage,
-            newValue: { action, mode: evaluated.mode, budgetUsedPercent: budget.usedPercent },
+        try {
+          const created = await createAdminNotification({
+            ...notice,
+            source: 'budget_guard',
+            metadata: { action: action.type, stage, mode: evaluated.mode },
+            dedupeKey: `budget:${budget.periodStart}:${stage}:${action.type}`,
           });
+          if (created) {
+            await writeAdminAudit({
+              action: 'ai_budget_guard_triggered',
+              subjectType: 'ai_budget_guard',
+              subjectId: stage,
+              newValue: { action, mode: evaluated.mode, budgetUsedPercent: budget.usedPercent },
+            });
+          }
+        } catch {
+          // Enforcement must not fail open because notification/audit persistence failed.
         }
       }
     }

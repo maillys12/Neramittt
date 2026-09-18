@@ -24,6 +24,13 @@ describe('AI model routing',()=>{
     expect(result.model).toBe('gpt-5.6-luna');
     expect(result.source).toBe('budget_guard');
   });
+  it('lets Budget Guard lower reasoning without changing the chosen model',()=>{
+    const r=runtime();r.stages.research={...r.stages.research,mode:'manual',modelOverride:'gpt-5.6-sol',reasoningEffort:'high'};
+    const result=resolveModelForStage({stage:'research',runtime:r,budgetPolicy:{forcedReasoning:'low'}});
+    expect(result.model).toBe('gpt-5.6-sol');
+    expect(result.reasoningEffort).toBe('low');
+    expect(result.source).toBe('budget_guard');
+  });
   it('lets safe mode override everything',()=>{
     const r=runtime();r.safeMode=true;r.stages.research={...r.stages.research,mode:'manual',modelOverride:'gpt-5.6-sol'};
     const result=resolveModelForStage({stage:'research',runtime:r,budgetPolicy:{forcedModel:'gpt-5.6-terra'}});

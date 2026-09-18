@@ -3,6 +3,7 @@ import { getAIRuntimeConfig } from '@/lib/ai/config';
 import { getBudgetSnapshot, getCostWindows } from '@/lib/ai/budget';
 import { actionsToRoutingPolicy, evaluateBudgetGuard, type BudgetGuardAction, type BudgetRule } from '@/lib/ai/budget-guard';
 import { createAdminNotification } from '@/lib/ai/notifications';
+import { writeAdminAudit } from '@/lib/admin/audit';
 import type { AIStage } from '@/lib/ai/types';
 
 function actionNotification(action: BudgetGuardAction, stage: AIStage, usedPercent: number) {
@@ -44,12 +45,20 @@ export async function getBudgetGuardForStage(stage: AIStage, options?: { notify?
       for (const action of evaluated.actions) {
         const notice = actionNotification(action, stage, budget.usedPercent);
         if (!notice) continue;
-        await createAdminNotification({
+        const created = await createAdminNotification({
           ...notice,
           source: 'budget_guard',
           metadata: { action: action.type, stage, mode: evaluated.mode },
           dedupeKey: `budget:${budget.periodStart}:${stage}:${action.type}`,
         });
+        if (created) {
+          await writeAdminAudit({
+            action: 'ai_budget_guard_triggered',
+            subjectType: 'ai_budget_guard',
+            subjectId: stage,
+            newValue: { action, mode: evaluated.mode, budgetUsedPercent: budget.usedPercent },
+          });
+        }
       }
     }
 

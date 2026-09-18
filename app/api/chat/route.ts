@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { readDeviceToken } from '@/lib/http/device';
 import { resolveDevice } from '@/lib/device/server';
@@ -10,6 +11,13 @@ import { buildPromptRepairInstructions, hasFencedPromptBlocks, sanitizeModelText
 import { AssistantTurnSchema, ChatRequestSchema, CreationSettingsSchema, type ChatStreamEvent } from '@/lib/chat/contracts';
 import { encodeChatEvent } from '@/lib/chat/ndjson';
 import { runResearchChat } from '@/lib/chat/orchestrator';
+import { getBudgetGuardForStage } from '@/lib/ai/runtime';
+import { getAIRuntimeConfig } from '@/lib/ai/config';
+import { resolveModelForStage, isEligibleFallbackError } from '@/lib/ai/model-router';
+import { recordAIUsage } from '@/lib/ai/usage';
+import { getPublishedPrompt } from '@/lib/ai/prompts';
+import type { AIStage } from '@/lib/ai/types';
+import type { PublishedPromptOverrides } from '@/lib/ui/chat-instructions';
 import { assistantTurnContent, assistantTurnMetadata, serializeChatError } from '@/lib/chat/persistence';
 
 export const maxDuration = 120;
@@ -23,6 +31,76 @@ const CHAT_CONTEXT_LIMIT = 12;
 
 function objectBrief(value: unknown) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+async function loadPublishedOverrides(): Promise<PublishedPromptOverrides> {
+  try {
+    const runtime = await getAIRuntimeConfig();
+    if (runtime.safeMode) return {};
+    const [system, creative] = await Promise.all([
+      getPublishedPrompt('system'),
+      getPublishedPrompt('creative_director'),
+    ]);
+    return { system: system?.content, creativeDirector: creative?.content };
+  } catch {
+    return {};
+  }
+}
+
+async function callConfiguredResponse(input: {
+  stage: AIStage;
+  requestId: string;
+  maxOutputTokens: number;
+  instructions: string;
+  promptInput: string;
+}) {
+  const guard = await getBudgetGuardForStage(input.stage);
+  const route = resolveModelForStage({ stage: input.stage, runtime: guard.runtime, budgetPolicy: guard.routingPolicy });
+  const ai = getOpenAI();
+
+  const run = async (model: string, retryIndex = 0) => {
+    const startedAtMs = Date.now();
+    try {
+      const response = await ai.responses.create({
+        model,
+        reasoning: { effort: route.reasoningEffort as any },
+        store: false,
+        max_output_tokens: Math.min(input.maxOutputTokens, route.maxOutputTokens),
+        instructions: input.instructions,
+        input: input.promptInput,
+      });
+      await recordAIUsage({
+        requestId: input.requestId,
+        executionMode: 'production',
+        stage: input.stage,
+        model,
+        startedAtMs,
+        response,
+        status: 'success',
+        retryIndex,
+      });
+      return response;
+    } catch (error) {
+      await recordAIUsage({
+        requestId: input.requestId,
+        executionMode: 'production',
+        stage: input.stage,
+        model,
+        startedAtMs,
+        status: 'error',
+        errorCode: error instanceof Error ? error.message : 'CHAT_FAILED',
+        retryIndex,
+      });
+      throw error;
+    }
+  };
+
+  try {
+    return await run(route.model);
+  } catch (error) {
+    if (!isEligibleFallbackError(error) || route.fallbackModel === route.model) throw error;
+    return run(route.fallbackModel, 1);
+  }
 }
 
 async function legacyPost(req: Request) {
@@ -41,26 +119,26 @@ async function legacyPost(req: Request) {
     if (messageError) throw messageError;
     const chronological = [...(messages ?? [])].reverse();
     const maxOutputTokens = settings.variantCount === 3 ? 1800 : settings.variantCount === 2 ? 1400 : 1000;
-    const ai = await getOpenAI().responses.create({
-      model: 'gpt-5.6-luna',
-      reasoning: { effort: 'low' },
-      store: false,
-      max_output_tokens: maxOutputTokens,
-      instructions: buildLegacyChatInstructions(settings),
-      input: chronological.map(message => `${message.role}: ${message.content}`).join('\n'),
+    const requestId = randomUUID();
+    const overrides = await loadPublishedOverrides();
+    const ai = await callConfiguredResponse({
+      stage: 'requirement',
+      requestId,
+      maxOutputTokens,
+      instructions: buildLegacyChatInstructions(settings, overrides),
+      promptInput: chronological.map(message => `${message.role}: ${message.content}`).join('\n'),
     });
     let text = sanitizeModelText(ai.output_text || (settings.language === 'en' ? 'Please share a little more detail.' : 'เล่ารายละเอียดเพิ่มอีกเล็กน้อยได้เลยครับ'));
     const looksLikeFinal = hasFencedPromptBlocks(text) || text.includes('Subject & Medium:') || text.includes('หัวข้อและสื่อ:');
     if (looksLikeFinal) {
       let validation = validateFinalPromptResponse(text, settings.variantCount, settings.language, settings.platform);
       if (!validation.ok) {
-        const repaired = await getOpenAI().responses.create({
-          model: 'gpt-5.6-luna',
-          reasoning: { effort: 'low' },
-          store: false,
-          max_output_tokens: maxOutputTokens,
+        const repaired = await callConfiguredResponse({
+          stage: 'repair',
+          requestId,
+          maxOutputTokens,
           instructions: buildPromptRepairInstructions(settings.variantCount, settings.language, settings.platform),
-          input: `Repair this response without changing the user's intended visual requirements:\n\n${text}`,
+          promptInput: `Repair this response without changing the user's intended visual requirements:\n\n${text}`,
         });
         text = sanitizeModelText(repaired.output_text || '');
         validation = validateFinalPromptResponse(text, settings.variantCount, settings.language, settings.platform);
@@ -140,6 +218,8 @@ async function structuredPost(req: Request) {
             history,
             settings,
             assets: input.assets ?? [],
+            requestId: input.requestId,
+            executionMode: 'production',
           }, stage => { send({ type: 'stage', stage }); });
           const content = assistantTurnContent(turn);
           const nextBrief = {

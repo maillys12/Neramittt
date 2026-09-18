@@ -85,6 +85,8 @@ export const ChatErrorCodeSchema = z.enum([
   'PROMPT_FORMAT_FAILED',
   'STREAM_INTERRUPTED',
   'MODEL_CAPABILITY_UNAVAILABLE',
+  'AI_PAUSED',
+  'AI_STAGE_DISABLED',
 ]);
 
 export const ChatStreamEventSchema = z.discriminatedUnion('type', [

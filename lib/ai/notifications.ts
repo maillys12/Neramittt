@@ -19,6 +19,12 @@ export async function createAdminNotification(input: {
     if ((data ?? []).length) return;
   }
   const metadata = { ...(input.metadata ?? {}), ...(input.dedupeKey ? { dedupeKey: input.dedupeKey } : {}) };
-  const { error } = await db.from('admin_notifications').insert({ ...input, metadata, dedupeKey: undefined });
+  const { error } = await db.from('admin_notifications').insert({
+    severity: input.severity,
+    source: input.source,
+    title: input.title,
+    message: input.message,
+    metadata,
+  });
   if (error) throw error;
 }

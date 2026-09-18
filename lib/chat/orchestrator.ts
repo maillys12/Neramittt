@@ -2,12 +2,15 @@ import type { CreationSettings } from '@/lib/ui/creation-settings';
 import type { AssistantTurn, WorkStage } from '@/lib/chat/contracts';
 import { generateResearchTurn, type ResearchGenerationInput } from '@/lib/chat/research';
 import { validateAssistantTurnQuality } from '@/lib/chat/quality-gate';
+import type { AIExecutionMode } from '@/lib/ai/types';
 
 type OrchestrationInput = {
   message: string;
   history: Array<{ role: 'user' | 'assistant'; content: string }>;
   settings: CreationSettings;
   assets: Array<{ id: string; kind: 'logo' | 'reference'; authentic: boolean; label?: string }>;
+  requestId: string;
+  executionMode?: AIExecutionMode;
 };
 
 type Dependencies = {
@@ -27,7 +30,11 @@ export async function runResearchChat(
 ) {
   const officialContext = isOfficialContext(input.message);
   const authenticLogoProvided = input.assets.some(asset => asset.kind === 'logo' && asset.authentic);
-  const baseInput: ResearchGenerationInput = { ...input, officialContext };
+  const baseInput: ResearchGenerationInput = {
+    ...input,
+    officialContext,
+    executionMode: input.executionMode ?? 'production',
+  };
 
   await emitStage('analyzing');
   await emitStage('researching');

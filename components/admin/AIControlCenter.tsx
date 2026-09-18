@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect,useState } from 'react';
 import AIOverviewTab from '@/components/admin/AIOverviewTab';
 import AIUsageTab from '@/components/admin/AIUsageTab';
 import AIModelsTab from '@/components/admin/AIModelsTab';
@@ -13,11 +13,20 @@ export const AI_CONTROL_TABS = [
 type Tab = typeof AI_CONTROL_TABS[number][0];
 
 export default function AIControlCenter({token}:{token:string}) {
-  const [tab,setTab] = useState<Tab>('overview');
+  const [tab,setTab]=useState<Tab>('overview');
+  const [unread,setUnread]=useState(0);
+
+  async function refreshUnread(){
+    const r=await fetch('/api/admin/ai/overview',{headers:{'x-neramit-admin':token}});
+    const x=await r.json();
+    if(r.ok)setUnread(Number(x.unreadNotifications??0));
+  }
+  useEffect(()=>{void refreshUnread();},[token,tab]);
+
   return <section className="aiControlCenter">
     <div className="aiControlHeader"><div><small className="aiEyebrow">AI CONTROL CENTER</small><h2>ควบคุมและติดตามระบบ AI</h2><p>ค่าใช้จ่าย เครดิต โมเดล พรอมต์ Budget Guard และประวัติการเปลี่ยนแปลง</p></div></div>
     <div className="aiTabs" role="tablist" aria-label="AI Control Center">
-      {AI_CONTROL_TABS.map(([id,label])=><button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}>{label}</button>)}
+      {AI_CONTROL_TABS.map(([id,label])=><button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}>{label}{id==='history'&&unread>0?<span className="aiTabBadge">{unread>99?'99+':unread}</span>:null}</button>)}
     </div>
     <div className="aiTabPanel">
       {tab==='overview'&&<AIOverviewTab token={token}/>}

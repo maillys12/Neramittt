@@ -1,7 +1,7 @@
 import { describe,expect,it } from 'vitest';
 import { evaluateBudgetGuard } from '@/lib/ai/budget-guard';
 
-const snapshot={enabled:true,monthlyBudgetThb:1000,usedThb:900,remainingThb:100,usedPercent:90,periodStart:'2026-09-01',periodEnd:'2026-10-01',usdToThb:34,dailyCostThb:20,monthlyCostThb:900};
+const snapshot={enabled:true,monthlyBudgetThb:1000,billingPeriodAnchor:1,usedThb:900,remainingThb:100,usedPercent:90,periodStart:'2026-09-01',periodEnd:'2026-10-01',usdToThb:34,dailyCostThb:20,monthlyCostThb:900};
 
 describe('Budget Guard',()=>{
   it('ignores disabled rules',()=>{

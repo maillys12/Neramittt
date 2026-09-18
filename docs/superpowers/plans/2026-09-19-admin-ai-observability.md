@@ -226,14 +226,10 @@ type PriceRow = {
   cachedInputUsdPerMillion?: number;
 };
 
-const MODEL_PRICES: Record<string, PriceRow> = {
-  'gpt-5.6-luna': {
-    version: 'openai-2026-09',
-    inputUsdPerMillion: /* verified provider price */,
-    outputUsdPerMillion: /* verified provider price */,
-    cachedInputUsdPerMillion: /* verified provider price or omit */,
-  },
-};
+const MODEL_PRICES: Record<string, PriceRow> = loadVerifiedPriceTable();
+```
+
+Before implementing `loadVerifiedPriceTable()`, verify the current price for every production model from an official OpenAI pricing/model source and encode those exact verified numbers in a checked-in constant table. If cached-input pricing is not published for a model, omit that field and let the calculator fall back to the normal input rate. The implementation step is not complete until the source and effective date used for the checked-in rates are recorded next to the table.
 ```
 Before replacing the comment markers, verify current provider pricing from an official OpenAI source. Do not copy a remembered price into code.
 

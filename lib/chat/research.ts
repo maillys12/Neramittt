@@ -124,7 +124,7 @@ export async function generateResearchTurn(input: ResearchGenerationInput): Prom
 
   const generationGuard = await getBudgetGuardForStage('creative_director');
   const generationRoute = resolveModelForStage({ stage: 'creative_director', runtime: generationGuard.runtime, budgetPolicy: generationGuard.routingPolicy });
-  const overrides = input.promptOverrides ?? await publishedOverrides();
+  const overrides = input.promptOverrides ?? (generationGuard.runtime.safeMode ? {} : await publishedOverrides());
   const generationStarted = Date.now();
 
   const runGeneration = async (model: string, retryIndex = 0) => {

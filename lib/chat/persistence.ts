@@ -31,6 +31,14 @@ const safeMessages: Record<ChatErrorCode, Record<PromptLanguage, string>> = {
     th: 'โมเดลที่ตั้งค่าไว้ยังไม่รองรับการค้นคว้า กรุณาติดต่อผู้ดูแลระบบ',
     en: 'The configured model does not support research. Please contact the administrator.',
   },
+  AI_PAUSED: {
+    th: 'ระบบ AI ถูกพักชั่วคราวโดยผู้ดูแล กรุณาลองใหม่ภายหลัง',
+    en: 'AI service is temporarily paused by the administrator. Please try again later.',
+  },
+  AI_STAGE_DISABLED: {
+    th: 'งาน AI ขั้นตอนนี้ถูกจำกัดชั่วคราว กรุณาลองใหม่ภายหลัง',
+    en: 'This AI stage is temporarily restricted. Please try again later.',
+  },
 };
 
 export function serializeChatError(error: unknown, language: PromptLanguage): ChatStreamEvent {
@@ -39,12 +47,14 @@ export function serializeChatError(error: unknown, language: PromptLanguage): Ch
     || raw === 'PROMPT_FORMAT_FAILED'
     || raw === 'STREAM_INTERRUPTED'
     || raw === 'MODEL_CAPABILITY_UNAVAILABLE'
+    || raw === 'AI_PAUSED'
+    || raw === 'AI_STAGE_DISABLED'
     ? raw
     : 'CHAT_FAILED';
   return {
     type: 'error',
     code,
     message: safeMessages[code][language],
-    retryable: code !== 'MODEL_CAPABILITY_UNAVAILABLE',
+    retryable: code !== 'MODEL_CAPABILITY_UNAVAILABLE' && code !== 'AI_PAUSED' && code !== 'AI_STAGE_DISABLED',
   };
 }

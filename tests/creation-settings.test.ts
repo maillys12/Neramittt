@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { languageInstruction, normalizeCreationSettings, platformInstruction, settingsPatch } from '@/lib/ui/creation-settings';
+import { languageInstruction, normalizeCreationSettings, platformInstruction, settingsPatch, typographyInstruction } from '@/lib/ui/creation-settings';
 
 describe('creation settings', () => {
   it('normalizes missing and invalid settings to safe defaults', () => {
@@ -15,12 +15,18 @@ describe('creation settings', () => {
     expect(settingsPatch({ platform: 'canva', language: 'th', variantCount: 2 })).toEqual({ target_platform: 'canva', prompt_language: 'th', variant_count: 2 });
   });
 
-  it('maps platform and always requires English for the final image prompt', () => {
+  it('maps platform and requires the selected final prompt language', () => {
     expect(platformInstruction('chatgpt')).toContain('ChatGPT');
     expect(platformInstruction('gemini')).toContain('Gemini');
     expect(platformInstruction('canva')).toContain('Canva');
     expect(platformInstruction('generic')).toContain('กลาง');
-    expect(languageInstruction('th')).toContain('entirely in English');
-    expect(languageInstruction('en')).toContain('entirely in English');
+    expect(languageInstruction('th')).toContain('ภาษาไทยระดับมืออาชีพ');
+    expect(languageInstruction('en')).toContain('advanced professional English');
+  });
+
+  it('uses capability-aware typography instead of banning useful poster copy everywhere', () => {
+    expect(typographyInstruction('chatgpt')).toContain('short verified display copy');
+    expect(typographyInstruction('chatgpt')).toContain('proofread');
+    expect(typographyInstruction('generic')).toContain('overlay later');
   });
 });

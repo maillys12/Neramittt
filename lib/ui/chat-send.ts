@@ -1,20 +1,20 @@
-export type OptimisticChatResult = { message: string; brief?: Record<string, unknown>; replies?: string[] };
+export type OptimisticChatResult = { message: string; brief?: Record<string, unknown> };
 
-type Params = {
+type Params<T extends OptimisticChatResult> = {
   message: string;
   appendUser: (message: string) => void;
   clearInput: () => void;
   ensureDraft: () => Promise<string>;
-  requestAssistant: (draftId: string, message: string) => Promise<OptimisticChatResult>;
+  requestAssistant: (draftId: string, message: string) => Promise<T>;
 };
 
-export async function sendChatOptimistically({
+export async function sendChatOptimistically<T extends OptimisticChatResult>({
   message,
   appendUser,
   clearInput,
   ensureDraft,
   requestAssistant,
-}: Params): Promise<OptimisticChatResult | null> {
+}: Params<T>): Promise<T | null> {
   const user = message.trim();
   if (!user) return null;
 

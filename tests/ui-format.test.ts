@@ -17,6 +17,14 @@ describe('Neramit UI format helpers', () => {
     ]);
   });
 
+  it('localizes chat summary labels to the selected language', () => {
+    expect(chatSummaryRows({ topic: 'Open house', work_type: 'Poster', color: 'Blue' }, 'en')).toEqual([
+      ['Topic', 'Open house'],
+      ['Work type', 'Poster'],
+      ['Color palette', 'Blue'],
+    ]);
+  });
+
   it('creates stable variant tab labels', () => {
     expect(variantTabLabel(0, 'สดใส')).toBe('แบบที่ 1 · สดใส');
     expect(variantTabLabel(1)).toBe('แบบที่ 2');

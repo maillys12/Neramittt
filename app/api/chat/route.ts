@@ -1,71 +1,187 @@
-import{NextResponse}from'next/server';
-import{z}from'zod';
-import{readDeviceToken}from'@/lib/http/device';
-import{resolveDevice}from'@/lib/device/server';
-import{getServerSupabase}from'@/lib/supabase/server';
-import{getOpenAI}from'@/lib/openai/client';
-import{normalizeCreationSettings,settingsPatch}from'@/lib/ui/creation-settings';
-import{buildChatInstructions}from'@/lib/ui/chat-instructions';
-import{buildPromptRepairInstructions,hasFencedPromptBlocks,sanitizeModelText,validateFinalPromptResponse}from'@/lib/ui/image-prompt-policy';
-import{parseAssistantEnvelope}from'@/lib/ui/smart-replies';
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { readDeviceToken } from '@/lib/http/device';
+import { resolveDevice } from '@/lib/device/server';
+import { getServerSupabase } from '@/lib/supabase/server';
+import { getOpenAI } from '@/lib/openai/client';
+import { normalizeCreationSettings, settingsPatch } from '@/lib/ui/creation-settings';
+import { buildLegacyChatInstructions } from '@/lib/ui/chat-instructions';
+import { buildPromptRepairInstructions, hasFencedPromptBlocks, sanitizeModelText, validateFinalPromptResponse } from '@/lib/ui/image-prompt-policy';
+import { AssistantTurnSchema, ChatRequestSchema, CreationSettingsSchema, type ChatStreamEvent } from '@/lib/chat/contracts';
+import { encodeChatEvent } from '@/lib/chat/ndjson';
+import { runResearchChat } from '@/lib/chat/orchestrator';
+import { assistantTurnContent, assistantTurnMetadata, serializeChatError } from '@/lib/chat/persistence';
 
-const CreationSettingsSchema=z.object({platform:z.enum(['chatgpt','gemini','canva','generic']),language:z.enum(['th','en']),variantCount:z.union([z.literal(1),z.literal(2),z.literal(3)])});
-const S=z.object({draftId:z.string().uuid(),message:z.string().min(1).max(5000),settings:CreationSettingsSchema.optional()});
-const CHAT_CONTEXT_LIMIT=12;
+export const maxDuration = 120;
 
-export async function POST(req:Request){
-  try{
-    const device=await resolveDevice(readDeviceToken(req));
-    const input=S.parse(await req.json());
-    const db=getServerSupabase();
-    const{data:draft,error}=await db.from('drafts').select('id,brief').eq('id',input.draftId).eq('device_id',device.id).single();
-    if(error)throw error;
-    const prior=draft.brief&&typeof draft.brief==='object'&&!Array.isArray(draft.brief)?draft.brief as Record<string,unknown>:{};
-    const settings=input.settings??normalizeCreationSettings(prior);
-    const briefWithSettings={...prior,...settingsPatch(settings)};
-    const{error:insertError}=await db.from('chat_messages').insert({draft_id:draft.id,role:'user',content:input.message});
-    if(insertError)throw insertError;
-    const{data:messages,error:messageError}=await db.from('chat_messages').select('role,content').eq('draft_id',draft.id).order('created_at',{ascending:false}).limit(CHAT_CONTEXT_LIMIT);
-    if(messageError)throw messageError;
-    const chronological=[...(messages??[])].reverse();
-    const maxOutputTokens=settings.variantCount===3?1500:settings.variantCount===2?1100:800;
-    const ai=await getOpenAI().responses.create({
-      model:'gpt-5.6-luna',
-      reasoning:{effort:'low'},
-      store:false,
-      max_output_tokens:maxOutputTokens,
-      instructions:buildChatInstructions(settings),
-      input:chronological.map(m=>`${m.role}: ${m.content}`).join('\n')
+const LegacySchema = z.object({
+  draftId: z.string().uuid(),
+  message: z.string().min(1).max(5000),
+  settings: CreationSettingsSchema.optional(),
+});
+const CHAT_CONTEXT_LIMIT = 12;
+
+function objectBrief(value: unknown) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+async function legacyPost(req: Request) {
+  try {
+    const device = await resolveDevice(readDeviceToken(req));
+    const input = LegacySchema.parse(await req.json());
+    const db = getServerSupabase();
+    const { data: draft, error } = await db.from('drafts').select('id,brief').eq('id', input.draftId).eq('device_id', device.id).single();
+    if (error) throw error;
+    const prior = objectBrief(draft.brief);
+    const settings = input.settings ?? normalizeCreationSettings(prior);
+    const briefWithSettings = { ...prior, ...settingsPatch(settings) };
+    const { error: insertError } = await db.from('chat_messages').insert({ draft_id: draft.id, role: 'user', content: input.message });
+    if (insertError) throw insertError;
+    const { data: messages, error: messageError } = await db.from('chat_messages').select('role,content').eq('draft_id', draft.id).order('created_at', { ascending: false }).limit(CHAT_CONTEXT_LIMIT);
+    if (messageError) throw messageError;
+    const chronological = [...(messages ?? [])].reverse();
+    const maxOutputTokens = settings.variantCount === 3 ? 1800 : settings.variantCount === 2 ? 1400 : 1000;
+    const ai = await getOpenAI().responses.create({
+      model: 'gpt-5.6-luna',
+      reasoning: { effort: 'low' },
+      store: false,
+      max_output_tokens: maxOutputTokens,
+      instructions: buildLegacyChatInstructions(settings),
+      input: chronological.map(message => `${message.role}: ${message.content}`).join('\n'),
     });
-    let text=sanitizeModelText(ai.output_text||'รับข้อมูลแล้วครับ เล่ารายละเอียดเพิ่มได้เลย');
-    const looksLikeFinal=hasFencedPromptBlocks(text)||text.includes('Subject & Medium:')||text.includes('Parameters:');
-    if(looksLikeFinal){
-      let validation=validateFinalPromptResponse(text,settings.variantCount);
-      if(!validation.ok){
-        const repaired=await getOpenAI().responses.create({
-          model:'gpt-5.6-luna',
-          reasoning:{effort:'low'},
-          store:false,
-          max_output_tokens:maxOutputTokens,
-          instructions:buildPromptRepairInstructions(settings.variantCount),
-          input:`Repair this response without changing the user's intended visual requirements:\n\n${text}`
+    let text = sanitizeModelText(ai.output_text || (settings.language === 'en' ? 'Please share a little more detail.' : 'เล่ารายละเอียดเพิ่มอีกเล็กน้อยได้เลยครับ'));
+    const looksLikeFinal = hasFencedPromptBlocks(text) || text.includes('Subject & Medium:') || text.includes('หัวข้อและสื่อ:');
+    if (looksLikeFinal) {
+      let validation = validateFinalPromptResponse(text, settings.variantCount, settings.language, settings.platform);
+      if (!validation.ok) {
+        const repaired = await getOpenAI().responses.create({
+          model: 'gpt-5.6-luna',
+          reasoning: { effort: 'low' },
+          store: false,
+          max_output_tokens: maxOutputTokens,
+          instructions: buildPromptRepairInstructions(settings.variantCount, settings.language, settings.platform),
+          input: `Repair this response without changing the user's intended visual requirements:\n\n${text}`,
         });
-        text=sanitizeModelText(repaired.output_text||'');
-        validation=validateFinalPromptResponse(text,settings.variantCount);
-        if(!validation.ok)throw new Error('PROMPT_FORMAT_FAILED');
+        text = sanitizeModelText(repaired.output_text || '');
+        validation = validateFinalPromptResponse(text, settings.variantCount, settings.language, settings.platform);
+        if (!validation.ok) throw new Error('PROMPT_FORMAT_FAILED');
       }
     }
-    const envelope=parseAssistantEnvelope(text);
-    text=envelope.message;
-    const nextBrief={...briefWithSettings,conversation_summary:text};
-    const[assistantWrite,draftWrite]=await Promise.all([
-      db.from('chat_messages').insert({draft_id:draft.id,role:'assistant',content:text}),
-      db.from('drafts').update({brief:nextBrief,updated_at:new Date().toISOString()}).eq('id',draft.id).eq('device_id',device.id)
+    const nextBrief = { ...briefWithSettings, conversation_summary: text };
+    const [assistantWrite, draftWrite] = await Promise.all([
+      db.from('chat_messages').insert({ draft_id: draft.id, role: 'assistant', content: text }),
+      db.from('drafts').update({ brief: nextBrief, updated_at: new Date().toISOString() }).eq('id', draft.id).eq('device_id', device.id),
     ]);
-    if(assistantWrite.error)throw assistantWrite.error;
-    if(draftWrite.error)throw draftWrite.error;
-    return NextResponse.json({ok:true,message:text,replies:envelope.replies,brief:nextBrief,settings});
-  }catch(e){
-    return NextResponse.json({ok:false,error:e instanceof Error?e.message:'CHAT_FAILED'},{status:400});
+    if (assistantWrite.error) throw assistantWrite.error;
+    if (draftWrite.error) throw draftWrite.error;
+    return NextResponse.json({ ok: true, message: text, brief: nextBrief, settings });
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'CHAT_FAILED' }, { status: 400 });
   }
+}
+
+async function structuredPost(req: Request) {
+  let language: 'th' | 'en' = 'th';
+  try {
+    const device = await resolveDevice(readDeviceToken(req));
+    const input = ChatRequestSchema.parse(await req.json());
+    const db = getServerSupabase();
+    const { data: draft, error } = await db.from('drafts').select('id,brief').eq('id', input.draftId).eq('device_id', device.id).single();
+    if (error) throw error;
+    const prior = objectBrief(draft.brief);
+    const settings = input.settings ?? normalizeCreationSettings(prior);
+    language = settings.language;
+    const briefWithSettings = { ...prior, ...settingsPatch(settings) };
+
+    const { data: existing } = await db.from('chat_messages')
+      .select('metadata')
+      .eq('draft_id', draft.id)
+      .eq('role', 'assistant')
+      .eq('metadata->>requestId', input.requestId)
+      .maybeSingle();
+    const existingMetadata = objectBrief(existing?.metadata);
+    const existingTurn = AssistantTurnSchema.safeParse(existingMetadata.turn);
+
+    if (!existingTurn.success) {
+      const userMetadata = input.selection ? { version: 2, parentRequestId: input.requestId, selection: input.selection } : { version: 2, parentRequestId: input.requestId };
+      const { error: insertError } = await db.from('chat_messages').insert({
+        draft_id: draft.id,
+        role: 'user',
+        content: input.message,
+        metadata: userMetadata,
+      });
+      if (insertError) throw insertError;
+    }
+
+    const { data: messages, error: messageError } = await db.from('chat_messages')
+      .select('role,content')
+      .eq('draft_id', draft.id)
+      .order('created_at', { ascending: false })
+      .limit(CHAT_CONTEXT_LIMIT);
+    if (messageError) throw messageError;
+    const history = [...(messages ?? [])].reverse().map(message => ({
+      role: message.role === 'assistant' ? 'assistant' as const : 'user' as const,
+      content: String(message.content ?? ''),
+    }));
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const send = (event: ChatStreamEvent) => controller.enqueue(encoder.encode(encodeChatEvent(event)));
+        try {
+          if (existingTurn.success) {
+            send({ type: 'turn', turn: existingTurn.data });
+            send({ type: 'done', requestId: input.requestId });
+            return;
+          }
+
+          const selectedContext = input.selection ? `${input.message}\n[Selected value: ${input.selection.value}]` : input.message;
+          const turn = await runResearchChat({
+            message: selectedContext,
+            history,
+            settings,
+            assets: input.assets ?? [],
+          }, stage => { send({ type: 'stage', stage }); });
+          const content = assistantTurnContent(turn);
+          const nextBrief = {
+            ...briefWithSettings,
+            ...turn.briefPatch,
+            conversation_summary: content,
+            research_snapshot: turn.type === 'final' ? { sources: turn.sources, researched_at: new Date().toISOString() } : prior.research_snapshot,
+          };
+          const [assistantWrite, draftWrite] = await Promise.all([
+            db.from('chat_messages').insert({
+              draft_id: draft.id,
+              role: 'assistant',
+              content,
+              metadata: assistantTurnMetadata(turn, input.requestId),
+            }),
+            db.from('drafts').update({ brief: nextBrief, updated_at: new Date().toISOString() }).eq('id', draft.id).eq('device_id', device.id),
+          ]);
+          if (assistantWrite.error) throw assistantWrite.error;
+          if (draftWrite.error) throw draftWrite.error;
+          send({ type: 'turn', turn });
+          send({ type: 'done', requestId: input.requestId });
+        } catch (error) {
+          send(serializeChatError(error, settings.language));
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'content-type': 'application/x-ndjson; charset=utf-8',
+        'cache-control': 'no-cache, no-transform',
+        'x-accel-buffering': 'no',
+      },
+    });
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: serializeChatError(error, language) }, { status: 400 });
+  }
+}
+
+export async function POST(req: Request) {
+  if (process.env.NERAMIT_RESEARCH_CHAT_V2 !== 'true') return legacyPost(req);
+  return structuredPost(req);
 }

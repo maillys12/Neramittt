@@ -32,6 +32,16 @@ export function platformInstruction(platform: TargetPlatform) {
   return 'จัดเป็นพรอมต์กลางที่นำไปใช้กับ AI สร้างภาพหลายแพลตฟอร์มได้ โดยไม่ผูกกับ syntax เฉพาะราย';
 }
 
-export function languageInstruction(_language: PromptLanguage) {
-  return 'Write every final image-generation prompt entirely in English. Conversation/UI language must never cause Thai text to appear inside the final image prompt.';
+export function languageInstruction(language: PromptLanguage) {
+  if (language === 'th') {
+    return 'ตอบผู้ใช้และเขียนพรอมต์ฉบับสมบูรณ์เป็นภาษาไทยระดับมืออาชีพ ใช้ภาษาไทยที่เป็นธรรมชาติ ละเอียด ชัดเจน และไม่แปลตรงตัวจากภาษาอังกฤษ';
+  }
+  return 'Respond to the user and write every final prompt in advanced professional English. Keep all user-facing messages, reply cards, copy suggestions, and recommendations in English.';
+}
+
+export function typographyInstruction(platform: TargetPlatform) {
+  if (platform === 'chatgpt') {
+    return 'ChatGPT image generation may render short verified display copy such as a headline, key number, date, or brief CTA when it makes the finished design more useful. Include only copy supplied by the user or clearly labeled as suggested copy, keep it short, specify the exact wording, and require the result to proofread every visible character. Keep long body copy, detailed contacts, terms, and unverified facts separate for overlay later.';
+  }
+  return 'Treat raster typography as unreliable: provide exact copy separately and reserve integrated natural space to overlay later. Do not ask the image model to render long, exact, or important Thai copy.';
 }

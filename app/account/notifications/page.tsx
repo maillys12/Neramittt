@@ -1,0 +1,1 @@
+import NotificationsClient from '@/components/member/NotificationsClient';export default function NotificationsPage(){return <NotificationsClient/>}

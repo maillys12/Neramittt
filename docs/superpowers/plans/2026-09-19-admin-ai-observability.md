@@ -229,9 +229,7 @@ type PriceRow = {
 const MODEL_PRICES: Record<string, PriceRow> = loadVerifiedPriceTable();
 ```
 
-Before implementing `loadVerifiedPriceTable()`, verify the current price for every production model from an official OpenAI pricing/model source and encode those exact verified numbers in a checked-in constant table. If cached-input pricing is not published for a model, omit that field and let the calculator fall back to the normal input rate. The implementation step is not complete until the source and effective date used for the checked-in rates are recorded next to the table.
-```
-Before replacing the comment markers, verify current provider pricing from an official OpenAI source. Do not copy a remembered price into code.
+Before implementing `loadVerifiedPriceTable()`, verify the current price for every production model from an official OpenAI pricing/model source and encode those exact verified numbers in a checked-in constant table. If cached-input pricing is not published for a model, omit that field and let the calculator fall back to the normal input rate. The implementation step is not complete until the source and effective date used for the checked-in rates are recorded next to the table. Do not copy remembered pricing into code.
 
 Calculation rule:
 ```ts

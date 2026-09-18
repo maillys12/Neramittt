@@ -18,8 +18,9 @@ export async function getBudgetSnapshot(now = new Date()): Promise<BudgetSnapsho
     .eq('id', 1).maybeSingle();
   if (error) throw error;
   const monthlyBudgetThb = Number(config?.monthly_budget_amount ?? 1000);
+  const billingPeriodAnchor = Number(config?.billing_period_anchor ?? 1);
   const usdToThb = Number(config?.usd_to_thb ?? 34);
-  const { start, end } = billingWindow(Number(config?.billing_period_anchor ?? 1), now);
+  const { start, end } = billingWindow(billingPeriodAnchor, now);
   const { data: rows, error: usageError } = await db.from('ai_usage_events')
     .select('estimated_cost_thb')
     .eq('execution_mode', 'production')
@@ -32,6 +33,7 @@ export async function getBudgetSnapshot(now = new Date()): Promise<BudgetSnapsho
   return {
     enabled: config?.enabled !== false,
     monthlyBudgetThb,
+    billingPeriodAnchor,
     usedThb,
     remainingThb,
     usedPercent,

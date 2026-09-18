@@ -111,3 +111,5 @@ $$;
 
 revoke all on function public.publish_ai_prompt(text, uuid) from public, anon, authenticated;
 revoke all on function public.rollback_ai_prompt(text, integer) from public, anon, authenticated;
+grant execute on function public.publish_ai_prompt(text, uuid) to service_role;
+grant execute on function public.rollback_ai_prompt(text, integer) to service_role;

@@ -1,0 +1,1 @@
+import AuthForm from '@/components/member/AuthForm'; export default function LoginPage(){return <main className="memberAuthPage"><AuthForm mode="login"/></main>}

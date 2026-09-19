@@ -1,0 +1,1 @@
+import CreationsClient from '@/components/member/CreationsClient';export default function CreationsPage(){return <CreationsClient/>}

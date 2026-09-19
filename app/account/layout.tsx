@@ -1,0 +1,1 @@
+import MemberShell from '@/components/member/MemberShell'; export default function AccountLayout({children}:{children:React.ReactNode}){return <MemberShell>{children}</MemberShell>}

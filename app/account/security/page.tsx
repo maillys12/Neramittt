@@ -1,0 +1,1 @@
+import SecurityForm from '@/components/member/SecurityForm';export default function SecurityPage(){return <SecurityForm/>}

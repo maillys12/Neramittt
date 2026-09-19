@@ -1,0 +1,1 @@
+import OrdersClient from '@/components/member/OrdersClient';export default function OrdersPage(){return <OrdersClient/>}

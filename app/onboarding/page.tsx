@@ -1,0 +1,1 @@
+import OnboardingForm from '@/components/member/OnboardingForm'; export default function OnboardingPage(){return <main className="memberAuthPage"><OnboardingForm/></main>}

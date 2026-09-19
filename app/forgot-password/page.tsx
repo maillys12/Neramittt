@@ -1,0 +1,1 @@
+import AuthForm from '@/components/member/AuthForm'; export default function ForgotPasswordPage(){return <main className="memberAuthPage"><AuthForm mode="forgot"/></main>}

@@ -1,0 +1,1 @@
+import PlansClient from '@/components/member/PlansClient';export default function PlansPage(){return <PlansClient/>}

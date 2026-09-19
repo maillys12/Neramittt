@@ -1,0 +1,1 @@
+import ProfileForm from '@/components/member/ProfileForm'; export default function ProfilePage(){return <ProfileForm/>}
